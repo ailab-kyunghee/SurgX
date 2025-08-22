@@ -4,9 +4,7 @@ permalink: /
 
 title: "[MICCAI 2025] SurgX: Neuron-Concept Association for Explainable Surgical Phase Recognition"
 authors:
-  - Ka Young Kim
-  - Hyeon Bae Kim
-  - Seong Tae Kim†
+  - Ka Young Kim, Hyeon Bae Kim, Seong Tae Kim†
 affiliations:
   - Kyung Hee University, Yongin, Republic of Korea
 paper: https://arxiv.org/pdf/2507.15418v1
