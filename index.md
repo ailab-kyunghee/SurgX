@@ -2,15 +2,15 @@
 layout: project_page
 permalink: /
 
-title: On Computable Numbers, with an Application to the Entscheidungsproblem
+title: "[MICCAI 2025] SurgX: Neuron-Concept Association for Explainable Surgical Phase Recognition"
 authors:
-    A. M. Turing
+    Ka Young Kim, Hyeon Bae Kim, Seong Tae Kim†
 affiliations:
-    King's College, Cambridge
-paper: https://www.cs.virginia.edu/~robins/Turing_Paper_1936.pdf
-video: https://www.youtube.com/results?search_query=turing+machine
-code: https://github.com/topics/turing-machines
-data: https://huggingface.co/docs/datasets
+    ²Kyung Hee University, Yongin, Republic of Korea
+paper: https://arxiv.org/pdf/2507.15541
+# video: https://www.youtube.com/results?search_query=turing+machine
+code: https://github.com/ailab-kyunghee/SurgX
+# data: https://huggingface.co/docs/datasets
 ---
 
 <!-- Using HTML to center the abstract -->
@@ -18,19 +18,7 @@ data: https://huggingface.co/docs/datasets
     <div class="column is-four-fifths">
         <h2>Abstract</h2>
         <div class="content has-text-justified">
-The "computable" numbers may be described briefly as the real
-numbers whose expressions as a decimal are calculable by finite means.
-Although the subject of this paper is ostensibly the computable numbers.
-it is almost equally easy to define and investigate computable functions
-of an integral variable or a real or computable variable, computable
-predicates, and so forth. The fundamental problems involved are,
-however, the same in each case, and I have chosen the computable numbers
-for explicit treatment as involving the least cumbrous technique. I hope
-shortly to give an account of the relations of the computable numbers,
-functions, and so forth to one another. This will include a development
-of the theory of functions of a real variable expressed in terms of computable
-numbers. According to my definition, a number is computable
-if its decimal can be written down by a machine...
+Surgical phase recognition plays a crucial role in surgical workflow analysis, enabling various applications such as surgical monitoring, skill assessment, and workflow optimization. Despite significant advancements in deep learning-based surgical phase recognition, these models remain inherently opaque, making it difficult to understand how they make decisions. This lack of interpretability hinders trust and makes it challenging to debug the model. To address this challenge, we propose SurgX, a novel concept-based explanation framework that enhances the interpretability of surgical phase recognition models by associating neurons with relevant concepts. In this paper, we introduce the process of selecting representative example sequences for neurons, constructing a concept set tailored to the surgical video dataset, associating neurons with concepts and identifying neurons crucial for predictions. Through extensive experiments on two surgical phase recognition models, we validate our method and analyze the explanation for prediction. This highlights the potential of our method in explaining surgical phase recognition. The code is available at <a href="https://github.com/ailab-kyunghee/SurgX" target="_blank">this https URL</a>.
         </div>
     </div>
 </div>
