@@ -130,6 +130,7 @@ code_url: https://github.com/ailab-kyunghee/SurgX
              class="button is-dark is-rounded is-medium">
             <span class="icon"><i class="fas fa-file-pdf"></i></span><span>Paper</span>
           </a>
+          {% endif %}
           <a href="./static/pdf/SurgX_Poster.pdf" target="_blank" rel="noopener"
              class="button is-dark is-rounded is-medium">
             <span class="icon"><i class="fas fa-file-pdf"></i></span><span>Poster</span>
