@@ -202,7 +202,6 @@ h1, h2, h3, h4, h5, h6 {
     </div>
   </div>
 </section>
-
 <!-- Abstract -->
 <section class="section pt-4 pb-4 abstract-section">
   <div class="container narrow-container">
@@ -210,9 +209,9 @@ h1, h2, h3, h4, h5, h6 {
       <div class="column is-12-tablet is-10-desktop">
         <h3 class="h-subtitle">Abstract</h3>
         <div class="content mt-3">
-        Surgical phase recognition plays a crucial role in surgical workflow analysis, enabling applications such as monitoring, skill assessment, and workflow optimization. However, deep learning models remain black-boxes, limiting interpretability and trust. 
-        <b>SurgX</b> is a novel concept-based explanation framework that associates neurons with human-interpretable surgical concepts. We construct concept sets tailored to cholecystectomy, select representative neuron activation sequences, and annotate neurons with concepts. 
-        By evaluating on TeCNO and Causal ASFormer using Cholec80, we demonstrate that SurgX provides meaningful explanations and improves transparency in surgical AI.  
+          Surgical phase recognition is central to workflow analysis, enabling applications such as monitoring, skill assessment, and process optimization. However, the underlying deep models are often black boxes, limiting interpretability and trust.
+          <b>SurgX</b> is a concept-driven explanation framework that associates neurons with human-interpretable surgical concepts. We construct cholecystectomy-specific concept sets, identify representative neuron activation sequences, and annotate neurons with concepts.
+          Evaluated on TeCNO and Causal ASFormer using Cholec80, SurgX yields meaningful explanations and improves transparency in surgical AI.
         </div>
       </div>
     </div>
@@ -228,17 +227,26 @@ h1, h2, h3, h4, h5, h6 {
       <div class="column is-12-tablet is-10-desktop">
         <h1 class="h-title">Main Contributions</h1>
         <ul class="content mt-4">
-          <li>Proposed <strong>SurgX</strong>, the first concept-based explanation framework for surgical phase recognition.</li>
-          <li>Developed specialized concept sets for cholecystectomy videos and analyzed best practices for concept selection.</li>
-          <li>Validated SurgX on two models (Causal ASFormer, TeCNO), demonstrating meaningful concept–neuron associations that enhance interpretability.</li>
+          <li>Introduce <strong>SurgX</strong>, a concept-based explanation framework for surgical phase recognition.</li>
+          <li>Develop cholecystectomy-tailored concept sets and analyze best practices for concept selection.</li>
+          <li>Validate SurgX on Causal ASFormer and TeCNO, showing consistent concept–neuron associations that enhance interpretability.</li>
         </ul>
       </div>
     </div>
     <div class="columns is-centered mt-6">
       <div class="column is-12-tablet is-10-desktop">
-        <h1 class="h-title step-title">SurgX STEP 1. Neuron-Concept Annotation</h1>
+        <h1 class="h-title step-title">SurgX STEP 1. Neuron–Concept Annotation</h1>
         <div class="figure section-figure">
           <img src="./static/image/overall.png" alt="overall">
+        </div>
+        <div class="content">
+          The pipeline for annotating concepts to neurons proceeds in three stages:
+          <ol>
+            <li><strong>A. Neuron Representative Sequence Selection</strong> – Select representative activation sequences for each neuron.</li>
+            <li><strong>B. Concept Set Selection</strong> – Choose among three concept sets; <em>ChoLec-270</em> performs best in our study.</li>
+            <li><strong>C. Neuron–Concept Association</strong> – Match neuron sequences with concepts via similarity in a surgical VLM space.</li>
+          </ol>
+          Details of each stage are provided below.
         </div>
         <div class="content">
           <h3 class="h-subtitle" style="color:#3B6B1C;">A. Neuron Representative Sequence Selection</h3>
@@ -246,11 +254,20 @@ h1, h2, h3, h4, h5, h6 {
         <div class="figure section-figure">
           <img src="./static/image/representative-sequence-selection.png" alt="representative sequence selection">
         </div>
-        <div class="figure section-figure">
-          <img src="./static/image/table2.png" alt="representative sequence selection">
+        <div class="content">
+          Given a trained temporal phase recognizer (e.g., Causal ASFormer or TeCNO), we first select frames that yield high activations in the penultimate layer. Because temporal models respond to sequences rather than single frames, we extend each selected frame with its preceding frames to form a representative sequence. Ablation studies are summarized below.
+        </div>
+        <div class="content">
+          <h4 class="h-minor" style="color:#3B6B1C;">Ablation Study: Frame Selection</h4>
         </div>
         <div class="figure section-figure">
-          <img src="./static/image/table3.png" alt="representative sequence selection">
+          <img src="./static/image/table2.png" alt="frame selection ablation">
+        </div>
+        <div class="content">
+          <h4 class="h-minor" style="color:#3B6B1C;">Ablation Study: Sequence Length</h4>
+        </div>
+        <div class="figure section-figure">
+          <img src="./static/image/table3.png" alt="sequence length ablation">
         </div>
         <div class="content">
           <h3 class="h-subtitle" style="color:#5F2A96;">B. Concept Set Selection</h3>
@@ -258,17 +275,23 @@ h1, h2, h3, h4, h5, h6 {
         <div class="figure section-figure">
           <img src="./static/image/concept_set.png" alt="concept set selection">
         </div>
-        <div class="figure section-figure">
-          <img src="./static/image/table1.png" alt="representative sequence selection">
+        <div class="content">
+          Appropriate concept coverage is critical: if a neuron’s behavior is not representable by the concept set, reliable annotation is impossible. We therefore construct three cholecystectomy-related concept sets and compare them empirically.
         </div>
         <div class="content">
-          <h3 class="h-subtitle" style="color:#4B8BAF;">C. Neuron-Concept Association</h3>
+          <h4 class="h-minor" style="color:#3B6B1C;">Ablation Study: Concept Sets</h4>
         </div>
         <div class="figure section-figure">
-          <img src="./static/image/neuron-concept-association.png" alt="neuron-concept association">
+          <img src="./static/image/table1.png" alt="concept set ablation">
         </div>
         <div class="content">
-          <p>Details about concept set 1, 2, and 3 go here.</p>
+          <h3 class="h-subtitle" style="color:#4B8BAF;">C. Neuron–Concept Association</h3>
+        </div>
+        <div class="figure section-figure">
+          <img src="./static/image/neuron-concept-association.png" alt="neuron–concept association">
+        </div>
+        <div class="content">
+          Using the selected sequences and concept set, we compute cosine similarity in a surgical VLM space (e.g., SurgVLP, PeskaVLP) between each neuron’s representative sequence and each concept text, and assign to each neuron the concepts with highest similarity.
         </div>
       </div>
     </div>
