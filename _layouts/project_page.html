@@ -8,8 +8,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{{ page.title }}</title>
 
-  <link href="https://fonts.googleapis.com/css?family=Google+Sans|Noto+Sans|Castoro"
-        rel="stylesheet">
+  <!-- Google Fonts 제거 (Pretendard 사용) -->
+  <!-- <link href="https://fonts.googleapis.com/css?family=Google+Sans|Noto+Sans|Castoro"
+        rel="stylesheet"> -->
 
   <link rel="stylesheet" href="./static/css/bulma.min.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" />
@@ -18,6 +19,53 @@
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
   <script defer src="./static/js/fontawesome.all.min.js"></script>
   <script src="./static/js/index.js"></script>
+
+  <!-- Pretendard Font -->
+  <style>
+    @font-face {
+      font-family: 'Pretendard';
+      src: url('./static/font/Pretendard-Regular.otf') format('opentype');
+      font-weight: 400;
+      font-style: normal;
+    }
+    @font-face {
+      font-family: 'Pretendard';
+      src: url('./static/font/Pretendard-Medium.otf') format('opentype');
+      font-weight: 500;
+      font-style: normal;
+    }
+    @font-face {
+      font-family: 'Pretendard';
+      src: url('./static/font/Pretendard-Black.otf') format('opentype');
+      font-weight: 900;
+      font-style: normal;
+    }
+
+    body {
+      font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+
+    /* 제목 중앙정렬 + Pretendard Black */
+    .publication-title {
+      font-family: 'Pretendard', sans-serif;
+      font-weight: 900;
+      text-align: center;
+      line-height: 1.25;
+    }
+
+    /* 저자/소속 중앙정렬 + Pretendard Medium */
+    .publication-authors {
+      font-family: 'Pretendard', sans-serif;
+      font-weight: 500;
+      text-align: center;
+      margin-top: 0.5rem;
+    }
+
+    .publication-authors .author-block {
+      display: block;
+      margin-bottom: 0.25rem;
+    }
+  </style>
 
   <!-- MathJax -->
   <script>
@@ -57,7 +105,6 @@
             </span>
           </div>
           {% endif %}
-
           {% if page.affiliations %}
           <div class="is-size-5 publication-authors">
             <span class="author-block">
@@ -65,59 +112,6 @@
             </span>
           </div>
           {% endif %}
-
-          <div class="column has-text-centered">
-            <div class="publication-links">
-              <!-- PDF Link. -->
-              {% if page.paper %}
-              <span class="link-block">
-                <a href="{{ page.paper }}"
-                   class="external-link button is-normal is-rounded is-dark">
-                  <span class="icon">
-                      <i class="fas fa-file-pdf"></i>
-                  </span>
-                  <span>Paper</span>
-                </a>
-              </span>
-              {% endif %}
-              <!-- Video Link. -->
-              {% if page.video %}
-              <span class="link-block">
-                <a href="{{ page.video }}"
-                   class="external-link button is-normal is-rounded is-dark">
-                  <span class="icon">
-                      <i class="fab fa-youtube"></i>
-                  </span>
-                  <span>Video</span>
-                </a>
-              </span>
-              {% endif %}
-              <!-- Code Link. -->
-              {% if page.code %}
-              <span class="link-block">
-                <a href="{{ page.code }}"
-                   class="external-link button is-normal is-rounded is-dark">
-                  <span class="icon">
-                      <i class="fab fa-github"></i>
-                  </span>
-                  <span>Code</span>
-                  </a>
-              </span>
-              {% endif %}
-              <!-- Dataset Link. -->
-              {% if page.data %}
-              <span class="link-block">
-                <a href="{{ page.data }}"
-                   class="external-link button is-normal is-rounded is-dark">
-                  <span class="icon">
-                      <i class="fas fa-database"></i>
-                  </span>
-                  <span>Data</span>
-                </a>
-              </span>
-              {% endif %}
-            </div>
-          </div>
         </div>
       </div>
     </div>
