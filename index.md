@@ -12,25 +12,46 @@ code_url: https://github.com/ailab-kyunghee/SurgX
 ---
 
 <style>
-/* --- Desktop 확대/모바일 풀폭 설정 --- */
+/* Pretendard Font 설정 */
+@font-face {
+  font-family: 'Pretendard';
+  src: url('./static/font/Pretendard-Regular.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+}
+@font-face {
+  font-family: 'Pretendard';
+  src: url('./static/font/Pretendard-Medium.otf') format('opentype');
+  font-weight: 500;
+  font-style: normal;
+}
+@font-face {
+  font-family: 'Pretendard';
+  src: url('./static/font/Pretendard-Black.otf') format('opentype');
+  font-weight: 900;
+  font-style: normal;
+}
 
-/* 데스크톱(≥1216px): 본문 폭 살짝 확대 */
+/* 전역 기본 폰트 적용 */
+body {
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* --- Desktop 확대/모바일 풀폭 설정 --- */
 @media screen and (min-width: 1216px) {
   .narrow-container {
     max-width: 1200px;
     margin: 0 auto;
   }
 }
-
-/* 와이드스크린(≥1408px): 본문 폭 더 확대 */
 @media screen and (min-width: 1408px) {
   .narrow-container {
-    max-width: 1280px; /* 기존 1100 → 1280 */
+    max-width: 1280px;
     margin: 0 auto;
   }
 }
 
-/* 전역: Abstract 제외 모든 텍스트 좌측 정렬 */
+/* 기본: 좌측 정렬 */
 body,
 .narrow-container,
 .narrow-container .content,
@@ -42,22 +63,22 @@ ul, ol, li, p, h1, h2, h3, h4, h5, h6 {
   text-align: left;
 }
 
-/* Abstract 섹션은 예외 처리: 제목 중앙, 본문 양쪽정렬 */
-.abstract-section .h-subtitle {
+/* Hero, Abstract 섹션은 중앙 정렬 */
+.hero-section,
+.abstract-section {
   text-align: center !important;
 }
 .abstract-section .content {
-  text-align: justify !important;
+  text-align: justify !important; /* Abstract 본문만 양쪽 정렬 */
 }
 
 /* 데스크톱에서 기본 폰트 크게 */
 @media screen and (min-width: 1024px) {
-  body { overflow-x: hidden; } /* 히어로 이미지 1.2배로 키워도 가로 스크롤 방지 */
+  body { overflow-x: hidden; }
   .narrow-container .content {
     font-size: 1.2rem;
     line-height: 1.9;
   }
-  /* PC: 히어로(1.png)만 1.2배 */
   .figure-hero img {
     transform: scale(1.2);
     transform-origin: center;
@@ -72,85 +93,64 @@ ul, ol, li, p, h1, h2, h3, h4, h5, h6 {
   display: block;
 }
 
-/* 모바일(≤768px): 이미지 중앙 + 부모 폭 100%만 사용 */
+/* 모바일(≤768px): 이미지 중앙 */
 @media screen and (max-width: 768px) {
-  .figure {
-    margin-left: 0;
-    margin-right: 0;
-  }
   .figure img {
-    width: 100% !important;   /* 부모(컬럼) 너비만 사용 */
+    width: 100% !important;
     max-width: 100% !important;
-    display: block;
     margin-left: auto;
-    margin-right: auto;       /* 확실한 중앙 정렬 */
+    margin-right: auto;
   }
-  .link-blocks .button.is-medium {
-    font-size: 0.875rem;   /* 텍스트 크기 축소 */
-    height: 2.25em;        /* 버튼 높이 축소 */
-    padding-left: 1em;     /* 좌우 패딩 축소 */
-    padding-right: 1em;
-    border-radius: 9999px; /* pill 유지 */
-  }
-  /* 아이콘이 너무 크면 약간만 축소 */
-  .link-blocks .button.is-medium .icon {
-    font-size: 0.95em;
-  }
-  /* 좌측 정렬 유지하되 줄바꿈 여지 */
   .link-blocks {
-    display: flex;
-    flex-wrap: wrap;
-    gap: .5rem;
-    justify-content: flex-start;
+    justify-content: center; /* 모바일에서는 버튼 중앙 */
   }
 }
 
-/* 버튼 그룹 간격 */
+/* 버튼 그룹 */
 .link-blocks {
   display: flex;
   gap: .5rem;
-  justify-content: flex-start; /* 좌측 정렬 */
+  justify-content: flex-start;
   align-items: center;
 }
 .link-blocks .button + .button {
   margin-left: 0;
 }
 
-/* 공용 이미지 여백 */
+/* 이미지 여백 */
 .section-figure {
   margin-top: 1rem;
   margin-bottom: 1.5rem;
 }
 
-/* 제목들: PC에서 더 크게 보이도록 상한 확대 */
-.h-title { /* 메인/공용 제목 */
+/* 제목 크기 */
+.h-title {
   font-size: clamp(1.75rem, 3.2vw, 2.75rem);
   font-weight: 900;
 }
-.h-subtitle { /* 섹션 제목 */
+.h-subtitle {
   font-size: clamp(1.35rem, 2.4vw, 2.125rem);
   font-weight: 700;
 }
-.h-minor { /* 소제목 */
+.h-minor {
   font-size: clamp(1.2rem, 2vw, 1.625rem);
   font-weight: 700;
 }
 
-/* 요청: STEP 제목을 훨씬 굵고 크게 */
+/* STEP 제목 강조 */
 .step-title {
-  font-size: clamp(2.25rem, 4.2vw, 3.25rem); /* 기본 h-title보다 크게 */
-  font-weight: 1000; /* 더 굵게 */
+  font-size: clamp(2.25rem, 4.2vw, 3.25rem);
+  font-weight: 900;
   letter-spacing: -0.01em;
   line-height: 1.15;
 }
 </style>
 
 <!-- Hero Illustration + 링크 버튼 -->
-<section class="section pt-4 pb-3">
+<section class="section pt-4 pb-3 hero-section">
   <div class="container narrow-container">
     <div class="columns is-centered">
       <div class="column is-12-tablet is-10-desktop">
-        <!-- 첫 이미지에 figure-hero 클래스 추가 -->
         <div class="figure section-figure figure-hero">
           <img src="./static/image/intro.png" alt="Illustration">
         </div>
@@ -158,7 +158,7 @@ ul, ol, li, p, h1, h2, h3, h4, h5, h6 {
     </div>
     <div class="columns is-centered">
       <div class="column is-12-tablet is-10-desktop">
-        <div class="link-blocks mt-4">
+        <div class="link-blocks mt-4" style="justify-content:center;">
           {% if page.paper_url %}
           <a href="{{ page.paper_url }}" target="_blank" rel="noopener"
              class="button is-dark is-rounded is-medium">
@@ -175,25 +175,17 @@ ul, ol, li, p, h1, h2, h3, h4, h5, h6 {
             <span class="icon"><i class="fab fa-github"></i></span><span>Code</span>
           </a>
           {% endif %}
-          <!-- {% if page.code_url %}
-          <a href="https://ailab-kyunghee.github.io/SSG-Com/"
-            class="button is-link is-rounded is-medium">
-            <span class="icon"><i class="fas fa-database" aria-hidden="true"></i></span>
-            <span>Dataset (Coming Sep 23)</span>
-          </a>
-          {% endif %} -->
         </div>
       </div>
     </div>
-
   </div>
 </section>
 
 <!-- Abstract -->
-<section class="section pt-4 pb-4">
+<section class="section pt-4 pb-4 abstract-section">
   <div class="container narrow-container">
-    <div class="columns is-centered abstract-section">
-      <div class="column is-12-tablet is-10-desktop has-text-centered">
+    <div class="columns is-centered">
+      <div class="column is-12-tablet is-10-desktop">
         <h3 class="h-subtitle">Abstract</h3>
         <div class="content mt-3">
         Surgical phase recognition plays a crucial role in surgical workflow analysis, enabling applications such as monitoring, skill assessment, and workflow optimization. However, deep learning models remain black-boxes, limiting interpretability and trust. 
