@@ -79,7 +79,6 @@ h1, h2, h3, h4, h5, h6 {
   text-align: justify !important;
 }
 
-
 /* 데스크톱에서 기본 폰트 크게 */
 @media screen and (min-width: 1024px) {
   body { overflow-x: hidden; }
@@ -166,6 +165,116 @@ h1, h2, h3, h4, h5, h6 {
   letter-spacing: -0.01em;
   line-height: 1.15;
 }
+
+/* =========================
+   Vertical Rhythm / Spacing
+   ========================= */
+
+/* 1) 간격 스케일 */
+:root{
+  --space-2xs: .4rem;
+  --space-xs:  .8rem;
+  --space-sm:  1.2rem;
+  --space-md:  1.8rem;
+  --space-lg:  2.4rem;
+  --space-xl:  3.2rem;
+  --space-2xl: 4.0rem;
+}
+
+/* 2) 섹션 자체 여백 강화 (Bulma pt/pb 클래스를 보완) */
+.section {
+  padding-top: var(--space-xl);
+  padding-bottom: var(--space-xl);
+}
+
+/* 3) 같은 섹션 안에서 columns 묶음 사이 간격 키우기 */
+.section .columns + .columns {
+  margin-top: var(--space-xl);
+}
+
+/* 4) 큰 제목(챕터)과 소제목(서브챕터)의 상하 간격 */
+.h-title {
+  margin-top: var(--space-xl);
+  margin-bottom: var(--space-md);
+}
+.step-title {
+  margin-top: var(--space-2xl);
+  margin-bottom: var(--space-lg);
+}
+.h-subtitle {
+  margin-top: var(--space-xl);
+  margin-bottom: var(--space-sm);
+}
+.h-minor {
+  margin-top: var(--space-lg);
+  margin-bottom: var(--space-xs);
+}
+
+/* 5) 문단(.content)과 목록, 표 등의 기본 간격 */
+.content {
+  margin-top: var(--space-sm);
+  margin-bottom: var(--space-md);
+}
+
+/* 연속된 블록들 사이 간격 자동 증대 */
+:where(.content, .figure, .h-title, .h-subtitle, .h-minor) 
+  + :where(.content, .figure, .h-title, .h-subtitle, .h-minor) {
+  margin-top: var(--space-lg);
+}
+
+/* 6) 이미지 블록 상하 여백 통일 */
+.section-figure {
+  margin-top: var(--space-sm) !important;
+  margin-bottom: var(--space-xl) !important;
+}
+
+/* 7) 리스트/목록 간격 */
+.content ul,
+.content ol {
+  margin-top: var(--space-xs);
+  margin-bottom: var(--space-md);
+}
+.content li + li {
+  margin-top: .35em; /* 항목 간 살짝 띄움 */
+}
+
+/* 8) 히어로/링크 버튼 묶음 주변 여백 */
+.hero-section .figure-hero {
+  margin-bottom: var(--space-lg);
+}
+.link-blocks {
+  margin-top: var(--space-sm);
+  margin-bottom: var(--space-md);
+}
+
+/* 9) 테이블/포스터 이미지 등 후속 블록 간격 통일감 */
+.figure + .content,
+.content + .figure {
+  margin-top: var(--space-lg);
+}
+
+/* 10) 가독 좋은 구분선 */
+hr.section-divider {
+  margin: var(--space-xl) auto;
+  border: none;
+  border-top: 1px solid rgba(0,0,0,.12);
+  width: min(980px, 100%);
+}
+
+/* 11) 모바일에서 과도한 여백 축소 (가독 유지) */
+@media screen and (max-width: 768px) {
+  .section {
+    padding-top: var(--space-lg);
+    padding-bottom: var(--space-lg);
+  }
+  .h-title { margin-top: var(--space-lg); margin-bottom: var(--space-sm); }
+  .step-title { margin-top: var(--space-xl); margin-bottom: var(--space-md); }
+  .h-subtitle { margin-top: var(--space-lg); margin-bottom: var(--space-xs); }
+  .h-minor { margin-top: var(--space-md); margin-bottom: var(--space-2xs); }
+  .section .columns + .columns { margin-top: var(--space-lg); }
+  .section-figure { margin-bottom: var(--space-lg) !important; }
+  hr.section-divider { margin: var(--space-lg) auto; }
+}
 </style>
 
 <!-- Hero Illustration + 링크 버튼 -->
@@ -202,6 +311,7 @@ h1, h2, h3, h4, h5, h6 {
     </div>
   </div>
 </section>
+
 <!-- Abstract -->
 <section class="section pt-4 pb-4 abstract-section">
   <div class="container narrow-container">
@@ -218,7 +328,7 @@ h1, h2, h3, h4, h5, h6 {
   </div>
 </section>
 
----
+<hr class="section-divider">
 
 <!-- Main Contributions -->
 <section class="section pt-5 pb-5">
@@ -233,63 +343,81 @@ h1, h2, h3, h4, h5, h6 {
         </ul>
       </div>
     </div>
+
     <div class="columns is-centered mt-6">
       <div class="column is-12-tablet is-10-desktop">
         <h1 class="h-title step-title">SurgX STEP 1. Neuron–Concept Annotation</h1>
+
         <div class="figure section-figure">
           <img src="./static/image/overall.png" alt="overall">
         </div>
+
         <div class="content">
           The pipeline for annotating concepts to neurons proceeds in three stages:
           <ol>
-            <strong>A. Neuron Representative Sequence Selection</strong> – Select representative activation sequences for each neuron.
-            <strong>B. Concept Set Selection</strong> – Choose among three concept sets; <em>ChoLec-270</em> performs best in our study.
-            <strong>C. Neuron–Concept Association</strong> – Match neuron sequences with concepts via similarity in a surgical VLM space.
+            <li><strong>A. Neuron Representative Sequence Selection</strong> – Select representative activation sequences for each neuron.</li>
+            <li><strong>B. Concept Set Selection</strong> – Choose among three concept sets; <em>ChoLec-270</em> performs best in our study.</li>
+            <li><strong>C. Neuron–Concept Association</strong> – Match neuron sequences with concepts via similarity in a surgical VLM space.</li>
           </ol>
           Details of each stage are provided below.
         </div>
+
         <div class="content">
           <h3 class="h-subtitle" style="color:#3B6B1C;">A. Neuron Representative Sequence Selection</h3>
         </div>
+
         <div class="figure section-figure">
           <img src="./static/image/representative-sequence-selection.png" alt="representative sequence selection">
         </div>
+
         <div class="content">
           Given a trained temporal phase recognizer (e.g., Causal ASFormer or TeCNO), we first select frames that yield high activations in the penultimate layer. Because temporal models respond to sequences rather than single frames, we extend each selected frame with its preceding frames to form a representative sequence. Ablation studies are summarized below.
         </div>
+
         <div class="content">
           <h4 class="h-minor" style="color:#3B6B1C;">Ablation Study: Frame Selection</h4>
         </div>
+
         <div class="figure section-figure">
           <img src="./static/image/table2.png" alt="frame selection ablation">
         </div>
+
         <div class="content">
           <h4 class="h-minor" style="color:#3B6B1C;">Ablation Study: Sequence Length</h4>
         </div>
+
         <div class="figure section-figure">
           <img src="./static/image/table3.png" alt="sequence length ablation">
         </div>
+
         <div class="content">
           <h3 class="h-subtitle" style="color:#5F2A96;">B. Concept Set Selection</h3>
         </div>
+
         <div class="figure section-figure">
           <img src="./static/image/concept_set.png" alt="concept set selection">
         </div>
+
         <div class="content">
           Appropriate concept coverage is critical: if a neuron’s behavior is not representable by the concept set, reliable annotation is impossible. We therefore construct three cholecystectomy-related concept sets and compare them empirically.
         </div>
+
         <div class="content">
           <h4 class="h-minor" style="color:#5F2A96;">Ablation Study: Concept Sets</h4>
         </div>
+
         <div class="figure section-figure">
           <img src="./static/image/table1.png" alt="concept set ablation">
         </div>
+
         <div class="content">
           <h3 class="h-subtitle" style="color:#4B8BAF;">C. Neuron–Concept Association</h3>
         </div>
+
         <div class="figure section-figure">
           <img src="./static/image/neuron-concept-association.png" alt="neuron–concept association">
         </div>
+
         <div class="content">
           Using the selected sequences and concept set, we compute cosine similarity in a surgical VLM space (e.g., SurgVLP, PeskaVLP) between each neuron’s representative sequence and each concept text, and assign to each neuron the concepts with highest similarity.
         </div>
