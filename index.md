@@ -242,9 +242,9 @@ h1, h2, h3, h4, h5, h6 {
         <div class="content">
           The pipeline for annotating concepts to neurons proceeds in three stages:
           <ol>
-            <li><strong>A. Neuron Representative Sequence Selection</strong> – Select representative activation sequences for each neuron.</li>
-            <li><strong>B. Concept Set Selection</strong> – Choose among three concept sets; <em>ChoLec-270</em> performs best in our study.</li>
-            <li><strong>C. Neuron–Concept Association</strong> – Match neuron sequences with concepts via similarity in a surgical VLM space.</li>
+            <strong>A. Neuron Representative Sequence Selection</strong> – Select representative activation sequences for each neuron.
+            <strong>B. Concept Set Selection</strong> – Choose among three concept sets; <em>ChoLec-270</em> performs best in our study.
+            <strong>C. Neuron–Concept Association</strong> – Match neuron sequences with concepts via similarity in a surgical VLM space.
           </ol>
           Details of each stage are provided below.
         </div>
@@ -279,7 +279,7 @@ h1, h2, h3, h4, h5, h6 {
           Appropriate concept coverage is critical: if a neuron’s behavior is not representable by the concept set, reliable annotation is impossible. We therefore construct three cholecystectomy-related concept sets and compare them empirically.
         </div>
         <div class="content">
-          <h4 class="h-minor" style="color:#3B6B1C;">Ablation Study: Concept Sets</h4>
+          <h4 class="h-minor" style="color:#5F2A96;">Ablation Study: Concept Sets</h4>
         </div>
         <div class="figure section-figure">
           <img src="./static/image/table1.png" alt="concept set ablation">
