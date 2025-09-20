@@ -55,22 +55,30 @@ body {
 body,
 .narrow-container,
 .narrow-container .content,
-.narrow-container .h-title,
-.narrow-container .h-subtitle,
-.narrow-container .h-minor,
-.link-blocks,
-ul, ol, li, p, h1, h2, h3, h4, h5, h6 {
+ul, ol, li, p {
   text-align: left;
 }
 
-/* Hero, Abstract 섹션은 중앙 정렬 */
+/* 제목도 좌측 */
+h1, h2, h3, h4, h5, h6 {
+  text-align: left;
+}
+
+/* Hero, Abstract 섹션은 중앙 정렬 강제 */
 .hero-section,
-.abstract-section {
+.hero-section * ,
+.abstract-section,
+.abstract-section h3,
+.abstract-section h1,
+.abstract-section h2 {
   text-align: center !important;
 }
+
+/* Abstract 본문만 양쪽 정렬 */
 .abstract-section .content {
-  text-align: justify !important; /* Abstract 본문만 양쪽 정렬 */
+  text-align: justify !important;
 }
+
 
 /* 데스크톱에서 기본 폰트 크게 */
 @media screen and (min-width: 1024px) {
@@ -214,7 +222,7 @@ ul, ol, li, p, h1, h2, h3, h4, h5, h6 {
     </div>
     <div class="columns is-centered mt-6">
       <div class="column is-12-tablet is-10-desktop">
-        <h2 class="h-title step-title">SurgX STEP 1. Neuron-Concept Annotation</h2>
+        <h1 class="h-title step-title">SurgX STEP 1. Neuron-Concept Annotation</h1>
         <div class="figure section-figure">
           <img src="./static/image/overall.png" alt="overall">
         </div>
@@ -229,9 +237,6 @@ ul, ol, li, p, h1, h2, h3, h4, h5, h6 {
         </div>
         <div class="figure section-figure">
           <img src="./static/image/table3.png" alt="representative sequence selection">
-        </div>
-        <div class="figure section-figure">
-          <img src="./static/image/representative-sequence-selection.png" alt="representative sequence selection">
         </div>
         <div class="content">
           <h3 class="h-subtitle" style="color:#5F2A96;">B. Concept Set Selection</h3>
