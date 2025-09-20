@@ -30,6 +30,26 @@ code_url: https://github.com/ailab-kyunghee/SurgX
   }
 }
 
+/* 전역: Abstract 제외 모든 텍스트 좌측 정렬 */
+body,
+.narrow-container,
+.narrow-container .content,
+.narrow-container .h-title,
+.narrow-container .h-subtitle,
+.narrow-container .h-minor,
+.link-blocks,
+ul, ol, li, p, h1, h2, h3, h4, h5, h6 {
+  text-align: left;
+}
+
+/* Abstract 섹션은 예외 처리: 제목 중앙, 본문 양쪽정렬 */
+.abstract-section .h-subtitle {
+  text-align: center !important;
+}
+.abstract-section .content {
+  text-align: justify !important;
+}
+
 /* 데스크톱에서 기본 폰트 크게 */
 @media screen and (min-width: 1024px) {
   body { overflow-x: hidden; } /* 히어로 이미지 1.2배로 키워도 가로 스크롤 방지 */
@@ -76,18 +96,24 @@ code_url: https://github.com/ailab-kyunghee/SurgX
   .link-blocks .button.is-medium .icon {
     font-size: 0.95em;
   }
-  /* 버튼이 1줄에 꽉 차면 줄바꿈 허용(선택) */
+  /* 좌측 정렬 유지하되 줄바꿈 여지 */
   .link-blocks {
     display: flex;
     flex-wrap: wrap;
     gap: .5rem;
-    justify-content: center;
+    justify-content: flex-start;
   }
 }
 
 /* 버튼 그룹 간격 */
+.link-blocks {
+  display: flex;
+  gap: .5rem;
+  justify-content: flex-start; /* 좌측 정렬 */
+  align-items: center;
+}
 .link-blocks .button + .button {
-  margin-left: .5rem;
+  margin-left: 0;
 }
 
 /* 공용 이미지 여백 */
@@ -97,7 +123,7 @@ code_url: https://github.com/ailab-kyunghee/SurgX
 }
 
 /* 제목들: PC에서 더 크게 보이도록 상한 확대 */
-.h-title { /* 메인 제목 */
+.h-title { /* 메인/공용 제목 */
   font-size: clamp(1.75rem, 3.2vw, 2.75rem);
   font-weight: 900;
 }
@@ -109,13 +135,21 @@ code_url: https://github.com/ailab-kyunghee/SurgX
   font-size: clamp(1.2rem, 2vw, 1.625rem);
   font-weight: 700;
 }
+
+/* 요청: STEP 제목을 훨씬 굵고 크게 */
+.step-title {
+  font-size: clamp(2.25rem, 4.2vw, 3.25rem); /* 기본 h-title보다 크게 */
+  font-weight: 1000; /* 더 굵게 */
+  letter-spacing: -0.01em;
+  line-height: 1.15;
+}
 </style>
 
 <!-- Hero Illustration + 링크 버튼 -->
 <section class="section pt-4 pb-3">
   <div class="container narrow-container">
     <div class="columns is-centered">
-      <div class="column is-12-tablet is-10-desktop has-text-centered">
+      <div class="column is-12-tablet is-10-desktop">
         <!-- 첫 이미지에 figure-hero 클래스 추가 -->
         <div class="figure section-figure figure-hero">
           <img src="./static/image/intro.png" alt="Illustration">
@@ -124,7 +158,7 @@ code_url: https://github.com/ailab-kyunghee/SurgX
     </div>
     <div class="columns is-centered">
       <div class="column is-12-tablet is-10-desktop">
-        <div class="link-blocks has-text-centered mt-4">
+        <div class="link-blocks mt-4">
           {% if page.paper_url %}
           <a href="{{ page.paper_url }}" target="_blank" rel="noopener"
              class="button is-dark is-rounded is-medium">
@@ -161,7 +195,7 @@ code_url: https://github.com/ailab-kyunghee/SurgX
     <div class="columns is-centered abstract-section">
       <div class="column is-12-tablet is-10-desktop has-text-centered">
         <h3 class="h-subtitle">Abstract</h3>
-        <div class="content has-text-justified mt-3">
+        <div class="content mt-3">
         Surgical phase recognition plays a crucial role in surgical workflow analysis, enabling applications such as monitoring, skill assessment, and workflow optimization. However, deep learning models remain black-boxes, limiting interpretability and trust. 
         <b>SurgX</b> is a novel concept-based explanation framework that associates neurons with human-interpretable surgical concepts. We construct concept sets tailored to cholecystectomy, select representative neuron activation sequences, and annotate neurons with concepts. 
         By evaluating on TeCNO and Causal ASFormer using Cholec80, we demonstrate that SurgX provides meaningful explanations and improves transparency in surgical AI.  
@@ -177,22 +211,22 @@ code_url: https://github.com/ailab-kyunghee/SurgX
 <section class="section pt-5 pb-5">
   <div class="container narrow-container">
     <div class="columns is-centered">
-      <div class="column is-12-tablet is-10-desktop has-text-centered">
+      <div class="column is-12-tablet is-10-desktop">
         <h1 class="h-title">Main Contributions</h1>
-        <ul class="content has-text-left mt-4" style="display:inline-block; text-align:left;">
+        <ul class="content mt-4">
           <li>Proposed <strong>SurgX</strong>, the first concept-based explanation framework for surgical phase recognition.</li>
           <li>Developed specialized concept sets for cholecystectomy videos and analyzed best practices for concept selection.</li>
-          <li>Validated SurgX on two models(Causal ASFormer, TeCNO), demonstrating meaningful concept–neuron associations that enhance interpretability.</li>
+          <li>Validated SurgX on two models (Causal ASFormer, TeCNO), demonstrating meaningful concept–neuron associations that enhance interpretability.</li>
         </ul>
       </div>
     </div>
     <div class="columns is-centered mt-6">
-      <div class="column is-12-tablet is-10-desktop has-text-centered">
-        <h2 class="h-title">SurgX STEP 1. Neuron-Concept Annotation</h2>
+      <div class="column is-12-tablet is-10-desktop">
+        <h2 class="h-title step-title">SurgX STEP 1. Neuron-Concept Annotation</h2>
         <div class="figure section-figure">
           <img src="./static/image/overall.png" alt="overall">
         </div>
-        <div class="content has-text-justified">
+        <div class="content">
           <h3 class="h-subtitle" style="color:#3B6B1C;">A. Neuron Representative Sequence Selection</h3>
         </div>
         <div class="figure section-figure">
@@ -207,7 +241,7 @@ code_url: https://github.com/ailab-kyunghee/SurgX
         <div class="figure section-figure">
           <img src="./static/image/representative-sequence-selection.png" alt="representative sequence selection">
         </div>
-        <div class="content has-text-justified">
+        <div class="content">
           <h3 class="h-subtitle" style="color:#5F2A96;">B. Concept Set Selection</h3>
         </div>
         <div class="figure section-figure">
@@ -216,13 +250,13 @@ code_url: https://github.com/ailab-kyunghee/SurgX
         <div class="figure section-figure">
           <img src="./static/image/table1.png" alt="representative sequence selection">
         </div>
-        <div class="content has-text-justified">
+        <div class="content">
           <h3 class="h-subtitle" style="color:#4B8BAF;">C. Neuron-Concept Association</h3>
         </div>
         <div class="figure section-figure">
           <img src="./static/image/neuron-concept-association.png" alt="neuron-concept association">
         </div>
-        <div class="content has-text-justified">
+        <div class="content">
           <p>Details about concept set 1, 2, and 3 go here.</p>
         </div>
       </div>
