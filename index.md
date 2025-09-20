@@ -188,32 +188,27 @@ code_url: https://github.com/ailab-kyunghee/SurgX
     </div>
     <div class="columns is-centered mt-6">
       <div class="column is-12-tablet is-10-desktop has-text-centered">
-        <h2 class="h-title">SurgX STEP 1. Neuron-Concept Annotation</h2>
+        <h2 class="h-title">SurgX, STEP 1. Neuron-Concept Annotation</h2>
         <div class="figure section-figure">
-          <img src="./static/image/neuron-concept-annotation.png" alt="concept set construction">
+          <img src="./static/image/overall.png" alt="overall">
         </div>
         <div class="content has-text-justified">
           <h3 class="h-subtitle" style="color:#3B6B1C;">A. Neuron Representative Sequence Selection</h3>
         </div>
+        <div class="figure section-figure">
+          <img src="./static/image/representative-sequence-selection.png" alt="representative sequence selection">
+        </div>
         <div class="content has-text-justified">
           <h3 class="h-subtitle" style="color:#5F2A96;">B. Concept Set Selection</h3>
+        </div>
+        <div class="figure section-figure">
+          <img src="./static/image/concept_set.png" alt="concept set selection">
         </div>
         <div class="content has-text-justified">
           <h3 class="h-subtitle" style="color:#4B8BAF;">C. Neuron-Concept Association</h3>
         </div>
         <div class="figure section-figure">
-          <img src="./static/image/models-prediction-explanation.png" alt="concept set construction">
-        </div>
-        <div class="content has-text-justified">
-          <p>Details about concept set 1, 2, and 3 go here.</p>
-        </div>
-      </div>
-    </div>
-    <div class="columns is-centered mt-6">
-      <div class="column is-12-tablet is-10-desktop has-text-centered">
-        <h2 class="h-title">Concept Set Construction</h2>
-        <div class="figure section-figure">
-          <img src="./static/image/concept_set.png" alt="concept set construction">
+          <img src="./static/image/neuron-concept-association.png" alt="neuron-concept association">
         </div>
         <div class="content has-text-justified">
           <p>Details about concept set 1, 2, and 3 go here.</p>
