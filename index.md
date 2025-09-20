@@ -115,15 +115,14 @@ h1, h2, h3, h4, h5, h6 {
 /* 모바일(≤768px): hero 버튼 크기 줄이기 */
 @media screen and (max-width: 768px) {
   .hero-section .link-blocks .button.is-medium {
-    font-size: 0.8rem;     /* 글자 크기 줄이기 */
-    height: 2.2em;         /* 버튼 높이 축소 */
-    padding-left: 0.9em;   /* 좌우 패딩 축소 */
+    font-size: 0.8rem;
+    height: 2.2em;
+    padding-left: 0.9em;
     padding-right: 0.9em;
-    border-radius: 9999px; /* pill 모양 유지 */
+    border-radius: 9999px;
   }
-
   .hero-section .link-blocks .button.is-medium .icon {
-    font-size: 0.85em; /* 아이콘 살짝 축소 */
+    font-size: 0.85em;
   }
 }
 
@@ -138,7 +137,7 @@ h1, h2, h3, h4, h5, h6 {
   margin-left: 0;
 }
 
-/* 이미지 여백 */
+/* 이미지 여백 (기본값 유지) */
 .section-figure {
   margin-top: 1rem;
   margin-bottom: 1.5rem;
@@ -181,18 +180,18 @@ h1, h2, h3, h4, h5, h6 {
   --space-2xl: 4.0rem;
 }
 
-/* 2) 섹션 자체 여백 강화 (Bulma pt/pb 클래스를 보완) */
-.section {
+/* 2) 섹션 여백: hero/abstract 는 원래대로, 그 외만 확대 */
+.section:not(.hero-section):not(.abstract-section) {
   padding-top: var(--space-xl);
   padding-bottom: var(--space-xl);
 }
 
-/* 3) 같은 섹션 안에서 columns 묶음 사이 간격 키우기 */
+/* 3) 같은 섹션 안에서 columns 묶음 사이 간격 키우기 (hero/abstract 제외 필요 없음) */
 .section .columns + .columns {
   margin-top: var(--space-xl);
 }
 
-/* 4) 큰 제목(챕터)과 소제목(서브챕터)의 상하 간격 */
+/* 4) 큰 제목/소제목 상하 간격 */
 .h-title {
   margin-top: var(--space-xl);
   margin-bottom: var(--space-md);
@@ -210,44 +209,44 @@ h1, h2, h3, h4, h5, h6 {
   margin-bottom: var(--space-xs);
 }
 
-/* 5) 문단(.content)과 목록, 표 등의 기본 간격 */
+/* 5) 문단/표/목록 기본 간격 */
 .content {
   margin-top: var(--space-sm);
   margin-bottom: var(--space-md);
 }
 
-/* 연속된 블록들 사이 간격 자동 증대 */
-:where(.content, .figure, .h-title, .h-subtitle, .h-minor) 
+/* 연속 블록 간 자동 간격 증대 */
+:where(.content, .figure, .h-title, .h-subtitle, .h-minor)
   + :where(.content, .figure, .h-title, .h-subtitle, .h-minor) {
   margin-top: var(--space-lg);
 }
 
-/* 6) 이미지 블록 상하 여백 통일 */
+/* 6) 이미지 블록 상하 여백 (확대) — hero/abstract 내부 기본 흐름은 유지 */
 .section-figure {
   margin-top: var(--space-sm) !important;
   margin-bottom: var(--space-xl) !important;
 }
 
-/* 7) 리스트/목록 간격 */
+/* 7) 리스트 간격 */
 .content ul,
 .content ol {
   margin-top: var(--space-xs);
   margin-bottom: var(--space-md);
 }
 .content li + li {
-  margin-top: .35em; /* 항목 간 살짝 띄움 */
+  margin-top: .35em;
 }
 
-/* 8) 히어로/링크 버튼 묶음 주변 여백 */
+/* 8) 히어로/링크 버튼 묶음 주변 여백 (기존 느낌 유지) */
 .hero-section .figure-hero {
-  margin-bottom: var(--space-lg);
+  margin-bottom: 1.5rem; /* 원래 감성 유지 */
 }
 .link-blocks {
   margin-top: var(--space-sm);
   margin-bottom: var(--space-md);
 }
 
-/* 9) 테이블/포스터 이미지 등 후속 블록 간격 통일감 */
+/* 9) 테이블/포스터 이미지 등 후속 블록 간격 */
 .figure + .content,
 .content + .figure {
   margin-top: var(--space-lg);
@@ -261,9 +260,9 @@ hr.section-divider {
   width: min(980px, 100%);
 }
 
-/* 11) 모바일에서 과도한 여백 축소 (가독 유지) */
+/* 11) 모바일에서 여백 살짝 축소 */
 @media screen and (max-width: 768px) {
-  .section {
+  .section:not(.hero-section):not(.abstract-section) {
     padding-top: var(--space-lg);
     padding-bottom: var(--space-lg);
   }
@@ -277,7 +276,7 @@ hr.section-divider {
 }
 </style>
 
-<!-- Hero Illustration + 링크 버튼 -->
+<!-- Hero Illustration + 링크 버튼 (그대로 유지) -->
 <section class="section pt-4 pb-3 hero-section">
   <div class="container narrow-container">
     <div class="columns is-centered">
@@ -312,7 +311,7 @@ hr.section-divider {
   </div>
 </section>
 
-<!-- Abstract -->
+<!-- Abstract (그대로 유지) -->
 <section class="section pt-4 pb-4 abstract-section">
   <div class="container narrow-container">
     <div class="columns is-centered">
@@ -330,7 +329,7 @@ hr.section-divider {
 
 <hr class="section-divider">
 
-<!-- Main Contributions -->
+<!-- Main Contributions (여기부터 시원한 간격 적용) -->
 <section class="section pt-5 pb-5">
   <div class="container narrow-container">
     <div class="columns is-centered">
