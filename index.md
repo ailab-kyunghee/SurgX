@@ -113,6 +113,20 @@ h1, h2, h3, h4, h5, h6 {
     justify-content: center; /* 모바일에서는 버튼 중앙 */
   }
 }
+/* 모바일(≤768px): hero 버튼 크기 줄이기 */
+@media screen and (max-width: 768px) {
+  .hero-section .link-blocks .button.is-medium {
+    font-size: 0.8rem;     /* 글자 크기 줄이기 */
+    height: 2.2em;         /* 버튼 높이 축소 */
+    padding-left: 0.9em;   /* 좌우 패딩 축소 */
+    padding-right: 0.9em;
+    border-radius: 9999px; /* pill 모양 유지 */
+  }
+
+  .hero-section .link-blocks .button.is-medium .icon {
+    font-size: 0.85em; /* 아이콘 살짝 축소 */
+  }
+}
 
 /* 버튼 그룹 */
 .link-blocks {
