@@ -198,11 +198,23 @@ code_url: https://github.com/ailab-kyunghee/SurgX
         <div class="figure section-figure">
           <img src="./static/image/representative-sequence-selection.png" alt="representative sequence selection">
         </div>
+        <div class="figure section-figure">
+          <img src="./static/image/table2.png" alt="representative sequence selection">
+        </div>
+        <div class="figure section-figure">
+          <img src="./static/image/table3.png" alt="representative sequence selection">
+        </div>
+        <div class="figure section-figure">
+          <img src="./static/image/representative-sequence-selection.png" alt="representative sequence selection">
+        </div>
         <div class="content has-text-justified">
           <h3 class="h-subtitle" style="color:#5F2A96;">B. Concept Set Selection</h3>
         </div>
         <div class="figure section-figure">
           <img src="./static/image/concept_set.png" alt="concept set selection">
+        </div>
+        <div class="figure section-figure">
+          <img src="./static/image/table1.png" alt="representative sequence selection">
         </div>
         <div class="content has-text-justified">
           <h3 class="h-subtitle" style="color:#4B8BAF;">C. Neuron-Concept Association</h3>
