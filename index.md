@@ -344,6 +344,7 @@ hr.section-divider {
       </div>
     </div>
 
+    <hr class="section-divider">
     <div class="columns is-centered mt-6">
       <div class="column is-12-tablet is-10-desktop">
         <h1 class="h-title step-title">SurgX STEP 1. Neuron–Concept Annotation</h1>
