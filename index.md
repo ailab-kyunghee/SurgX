@@ -182,7 +182,7 @@ code_url: https://github.com/ailab-kyunghee/SurgX
         <ul class="content has-text-left mt-4" style="display:inline-block; text-align:left;">
           <li>Proposed <strong>SurgX</strong>, the first concept-based explanation framework for surgical phase recognition.</li>
           <li>Developed specialized concept sets for cholecystectomy videos and analyzed best practices for concept selection.</li>
-          <li>Validated SurgX on two models, demonstrating meaningful concept–neuron associations that enhance interpretability.</li>
+          <li>Validated SurgX on two models(Causal ASFormer, TeCNO), demonstrating meaningful concept–neuron associations that enhance interpretability.</li>
         </ul>
       </div>
     </div>
@@ -193,7 +193,7 @@ code_url: https://github.com/ailab-kyunghee/SurgX
           <img src="./static/image/neuron-concept-annotation.png" alt="concept set construction">
         </div>
         <div class="content has-text-justified">
-          <p>Details about concept set 1, 2, and 3 go here.</p>
+          <h3 style="color:#3B6B1C;">A. Neuron Representative Sequence Selection</h3>
         </div>
         <div class="figure section-figure">
           <img src="./static/image/models-prediction-explanation.png" alt="concept set construction">
