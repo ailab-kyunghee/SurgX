@@ -99,7 +99,7 @@ code_url: https://github.com/ailab-kyunghee/SurgX
 /* 제목들: PC에서 더 크게 보이도록 상한 확대 */
 .h-title { /* 메인 제목 */
   font-size: clamp(1.75rem, 3.2vw, 2.75rem);
-  font-weight: 700;
+  font-weight: 900;
 }
 .h-subtitle { /* 섹션 제목 */
   font-size: clamp(1.35rem, 2.4vw, 2.125rem);
