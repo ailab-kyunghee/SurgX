@@ -188,7 +188,7 @@ code_url: https://github.com/ailab-kyunghee/SurgX
     </div>
     <div class="columns is-centered mt-6">
       <div class="column is-12-tablet is-10-desktop has-text-centered">
-        <h2 class="h-title">SurgX, A Framework to Explain Surgical Phase Recognition Model</h2>
+        <h2 class="h-title">SurgX STEP 1. Neuron-Concept Annotation</h2>
         <div class="figure section-figure">
           <img src="./static/image/neuron-concept-annotation.png" alt="concept set construction">
         </div>
