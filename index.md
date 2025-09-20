@@ -118,7 +118,7 @@ code_url: https://github.com/ailab-kyunghee/SurgX
       <div class="column is-12-tablet is-10-desktop has-text-centered">
         <!-- 첫 이미지에 figure-hero 클래스 추가 -->
         <div class="figure section-figure figure-hero">
-          <img src="./static/image/1.png" alt="Illustration">
+          <img src="./static/image/intro.png" alt="Illustration">
         </div>
       </div>
     </div>
