@@ -12,6 +12,52 @@ code_url: https://github.com/ailab-kyunghee/SurgX
 ---
 
 <style>
+  /* ===== Tighten only title↔hero and hero↔abstract ===== */
+
+/* 레이아웃이 상단에 페이지 제목을 렌더링할 때 대비 */
+.page-title,
+.post-title,
+h1.page-title,
+h1.post-title {
+  margin-bottom: 0.6rem; /* 제목과 히어로를 더 가깝게 */
+}
+
+/* 히어로 섹션 자체 간격 축소 */
+.hero-section {
+  padding-top: 0.6rem !important;
+  padding-bottom: 0.6rem !important;
+}
+
+/* 히어로 내부 이미지와 버튼 간격도 촘촘하게 */
+.hero-section .figure-hero {
+  margin-bottom: 0.6rem !important;
+}
+.hero-section .link-blocks {
+  margin-top: 0.4rem !important;
+  margin-bottom: 0.6rem !important;
+}
+
+/* Abstract의 상단 여백만 줄여서 히어로와 바짝 */
+.abstract-section {
+  padding-top: 0.8rem !important;
+}
+
+/* 히어로와 Abstract 사이에 구분선이 있으면 여백 최소화 */
+hr.section-divider {
+  margin: 0.8rem auto !important;
+}
+
+/* 모바일에서는 너무 붙지 않게 살짝만 완화 */
+@media (max-width: 768px) {
+  .hero-section {
+    padding-top: 0.8rem !important;
+    padding-bottom: 0.8rem !important;
+  }
+  .abstract-section {
+    padding-top: 1rem !important;
+  }
+}
+
 /* Pretendard Font 설정 */
 @font-face {
   font-family: 'Pretendard';
