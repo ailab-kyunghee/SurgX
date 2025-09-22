@@ -490,65 +490,156 @@ hr.section-divider {
           </ol>
           Details of each stage are provided below.
         </div>
-
         <div class="content">
-          <h3 class="h-subtitle" style="color:#3B6B1C;">A. Neuron Representative Sequence Selection</h3>
-        </div>
+          <h4 class="h-subtitle">Qualitative Results – Explanation Examples</h4>
+          <!-- === GIF Player: ./static/gif/video41.gif === -->
+<div id="surgx-gif-player" class="box" style="max-width: 980px; margin: 0 auto;">
+  <div style="display:flex; justify-content:center;">
+    <canvas id="surgx-gif-canvas" style="max-width:100%; height:auto;"></canvas>
+  </div>
 
-        <div class="figure section-figure">
-          <img src="./static/image/representative-sequence-selection.png" alt="representative sequence selection">
-        </div>
+  <div class="mt-3" style="display:flex; align-items:center; gap:.75rem;">
+    <button id="surgx-gif-toggle" class="button is-dark is-rounded is-small">
+      <span class="icon"><i class="fas fa-pause"></i></span>
+      <span>Pause</span>
+    </button>
 
-        <div class="content">
-          Given a trained temporal phase recognizer (e.g., Causal ASFormer or TeCNO), we first select frames that yield high activations in the penultimate layer. Because temporal models respond to sequences rather than single frames, we extend each selected frame with its preceding frames to form a representative sequence. Ablation studies are summarized below.
-        </div>
+    <input id="surgx-gif-progress" type="range" min="1" max="1" value="1" step="1" style="flex:1;" />
+    <span class="tag is-light is-rounded">
+      <span id="surgx-gif-cur">1</span>/<span id="surgx-gif-total">1</span>
+    </span>
+  </div>
+</div>
 
-        <div class="content">
-          <h4 class="h-minor" style="color:#3B6B1C;">Ablation Study: Frame Selection</h4>
-        </div>
+<!-- gifler: lightweight gif->canvas player (CDN) -->
+<script src="https://unpkg.com/gifler@0.1.0/gifler.min.js"></script>
 
-        <div class="figure section-figure">
-          <img src="./static/image/table2.png" alt="frame selection ablation">
-        </div>
+<script>
+(function() {
+  const GIF_SRC = './static/gif/video41_003001-004476.gif';
 
-        <div class="content">
-          <h4 class="h-minor" style="color:#3B6B1C;">Ablation Study: Sequence Length</h4>
-        </div>
+  const canvas   = document.getElementById('surgx-gif-canvas');
+  const btn      = document.getElementById('surgx-gif-toggle');
+  const progress = document.getElementById('surgx-gif-progress');
+  const curSpan  = document.getElementById('surgx-gif-cur');
+  const totSpan  = document.getElementById('surgx-gif-total');
 
-        <div class="figure section-figure">
-          <img src="./static/image/table3.png" alt="sequence length ablation">
-        </div>
+  let animator = null;
+  let isPlaying = true;
+  let totalFrames = 1;
+  let lastDrawnIndex = 0;
 
-        <div class="content">
-          <h3 class="h-subtitle" style="color:#5F2A96;">B. Concept Set Selection</h3>
-        </div>
+  // 초기 로드: 자동재생, 총 프레임 수 파악, 진행바 세팅
+  gifler(GIF_SRC).get(function(a) {
+    animator = a;
 
-        <div class="figure section-figure">
-          <img src="./static/image/concept_set.png" alt="concept set selection">
-        </div>
+    a.onDrawFrame = function(ctx, frame) {
+      // 캔버스 크기 동기화
+      if (canvas.width !== frame.width || canvas.height !== frame.height) {
+        canvas.width  = frame.width;
+        canvas.height = frame.height;
+      }
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(frame.buffer, frame.x, frame.y);
 
-        <div class="content">
-          Appropriate concept coverage is critical: if a neuron’s behavior is not representable by the concept set, reliable annotation is impossible. We therefore construct three cholecystectomy-related concept sets and compare them empirically.
-        </div>
+      // 진행바/표시 업데이트
+      lastDrawnIndex = (typeof frame.index === 'number' ? frame.index : (lastDrawnIndex+1));
+      curSpan.textContent = (lastDrawnIndex + 1);
 
-        <div class="content">
-          <h4 class="h-minor" style="color:#5F2A96;">Ablation Study: Concept Sets</h4>
-        </div>
+      // totalFrames은 첫 프레임들 그린 뒤 한번만 세팅
+      if (!totalFrames && a && a._frames && a._frames.length) {
+        totalFrames = a._frames.length;
+        progress.max = totalFrames;
+        totSpan.textContent = totalFrames;
+      }
 
-        <div class="figure section-figure">
-          <img src="./static/image/table1.png" alt="concept set ablation">
-        </div>
+      // 일부 구현체는 위에서 totalFrames를 못 가져올 수 있어 방어적으로 갱신
+      if (a && a._frames && a._frames.length && totalFrames !== a._frames.length) {
+        totalFrames = a._frames.length;
+        progress.max = totalFrames;
+        totSpan.textContent = totalFrames;
+      }
 
-        <div class="content">
-          <h3 class="h-subtitle" style="color:#4B8BAF;">C. Neuron–Concept Association</h3>
-        </div>
+      // 진행바 값 동기화 (사용자 스크럽 중이 아닐 때만)
+      if (!progress._isScrubbing) {
+        progress.value = lastDrawnIndex + 1;
+      }
+    };
 
-        <div class="figure section-figure">
-          <img src="./static/image/neuron-concept-association.png" alt="neuron–concept association">
-        </div>
+    // 캔버스에 애니메이션 부착 후 자동재생
+    a.animateInCanvas(canvas);
+    isPlaying = true;
 
-        <div class="content">
-          Using the selected sequences and concept set, we compute cosine similarity in a surgical VLM space (e.g., SurgVLP, PeskaVLP) between each neuron’s representative sequence and each concept text, and assign to each neuron the concepts with highest similarity.
+    // 초기 total 프레임 표시(일부 환경에서는 로딩 직후 접근 가능)
+    if (a._frames && a._frames.length) {
+      totalFrames = a._frames.length;
+      progress.max = totalFrames;
+      totSpan.textContent = totalFrames;
+    } else {
+      // 일단 1로 두고, onDrawFrame에서 보정
+      totalFrames = 1;
+      progress.max = 1;
+      totSpan.textContent = 1;
+    }
+  });
+
+  // 재생/일시정지 토글
+  btn.addEventListener('click', function() {
+    if (!animator) return;
+    if (isPlaying) {
+      animator.stop();
+      isPlaying = false;
+      btn.innerHTML = '<span class="icon"><i class="fas fa-play"></i></span><span>Play</span>';
+    } else {
+      animator.play();
+      isPlaying = true;
+      btn.innerHTML = '<span class="icon"><i class="fas fa-pause"></i></span><span>Pause</span>';
+    }
+  });
+
+  // 스크럽 시작/끝 표시 (진행바 드래그 중 자동 업데이트 억제)
+  progress.addEventListener('mousedown',  () => progress._isScrubbing = true);
+  progress.addEventListener('touchstart', () => progress._isScrubbing = true, {passive:true});
+  function endScrub() { progress._isScrubbing = false; }
+  progress.addEventListener('mouseup', endScrub);
+  progress.addEventListener('mouseleave', endScrub);
+  progress.addEventListener('touchend', endScrub);
+
+  // 사용자가 진행바 이동 → 해당 프레임으로 점프
+  function seekToSliderFrame() {
+    if (!animator || !totalFrames) return;
+    const target = Math.max(1, Math.min(totalFrames, parseInt(progress.value, 10) || 1)) - 1;
+
+    // 일시정지 상태 유지: 사용자가 정밀 탐색 시 화면만 바꾸고 재생은 하지 않음
+    const wasPlaying = isPlaying;
+    if (wasPlaying) animator.stop();
+
+    if (typeof animator.setFrameIndex === 'function') {
+      animator.setFrameIndex(target);
+    } else if (typeof animator.moveToFrame === 'function') {
+      animator.moveToFrame(target);
+    }
+
+    // 수동으로 한 프레임 그리기(일부 구현체 대비)
+    if (animator.onDrawFrame && animator._frames && animator._frames[target]) {
+      const ctx = canvas.getContext('2d');
+      const frame = animator._frames[target];
+      animator.onDrawFrame(ctx, frame);
+    }
+
+    if (wasPlaying) {
+      animator.play();
+      isPlaying = true;
+      btn.innerHTML = '<span class="icon"><i class="fas fa-pause"></i></span><span>Pause</span>';
+    } else {
+      isPlaying = false;
+      btn.innerHTML = '<span class="icon"><i class="fas fa-play"></i></span><span>Play</span>';
+    }
+  }
+  progress.addEventListener('input', seekToSliderFrame);
+})();
+</script>
+
         </div>
       </div>
     </div>
