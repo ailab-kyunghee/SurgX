@@ -499,7 +499,7 @@ hr.section-divider {
   <div id="surgx-video-bar" class="buttons has-addons is-centered mb-3" style="justify-content:center;">
     <button class="button is-link is-light is-rounded is-small surgx-pick" data-name="video43_clipper">video43</button>
     <button class="button is-link is-light is-rounded is-small surgx-pick" data-name="video47_cleaning">video47</button>
-    <button class="button is-link is-light is-rounded is-small surgx-pick" data-name="video61_pack">video61</button>
+    <!-- <button class="button is-link is-light is-rounded is-small surgx-pick" data-name="video61_pack">video61</button> -->
   </div>
 
   <!-- Video element -->
