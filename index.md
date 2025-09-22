@@ -506,7 +506,6 @@ hr.section-divider {
   <div style="display:flex; justify-content:center;">
     <video
       id="surgx-mp4"
-      src="./static/video/video41.mp4"
       playsinline
       muted
       preload="metadata"
@@ -528,12 +527,17 @@ hr.section-divider {
       <span style="margin-left:.5rem;">(<span id="surgx-time-cur">0:00</span>/<span id="surgx-time-total">0:00</span>)</span>
     </span>
   </div>
+
+  <!-- Per-video caption: always shows "videoNN" under the video -->
+  <div id="surgx-video-caption" class="has-text-centered is-size-6 mt-2" style="font-weight:600;">video43</div>
+
 </div>
 
 <script>
 (function() {
   // ===== 설정 =====
-  const STEP_SEC = 0.2; // ← 여기만 바꾸면 원하는 시간 해상도로 드래그/클릭 가능 (0.2초 단위)
+  const STEP_SEC = 0.2;              // 드래그/클릭 시간 해상도 (0.2초 단위)
+  const BASE_PATH = './static/video/';
 
   const video    = document.getElementById('surgx-mp4');
   const btn      = document.getElementById('surgx-mp4-toggle');
@@ -542,6 +546,9 @@ hr.section-divider {
   const stepTot  = document.getElementById('surgx-step-total');
   const tCur     = document.getElementById('surgx-time-cur');
   const tTot     = document.getElementById('surgx-time-total');
+  const caption  = document.getElementById('surgx-video-caption');
+
+  const pickerBtns = document.querySelectorAll('.surgx-pick');
 
   let totalSteps = 0;
   let rafId = null;
@@ -556,14 +563,15 @@ hr.section-divider {
     const m = Math.floor(s/60), sec = s%60;
     return `${m}:${String(sec).padStart(2,'0')}`;
   };
-  const timeToStep = (t) => Math.round(t / STEP_SEC);              // 0-based step index
-  const stepToTime = (step) => step * STEP_SEC;                     // seconds
+  const timeToStep = (t) => Math.round(t / STEP_SEC);      // 0-based step index
+  const stepToTime = (step) => step * STEP_SEC;             // seconds
   const posToStep  = (clientX) => {
     const rect = rectCache || progress.getBoundingClientRect();
     rectCache = rect;
     const x = clamp((clientX - rect.left) / rect.width, 0, 1);
     return Math.round(x * totalSteps);
   };
+  const displayLabelFromName = (name) => (name || '').split('_')[0] || 'video';
 
   function updateSliderFromTime(t) {
     const s = clamp(timeToStep(t), 0, totalSteps);
@@ -579,9 +587,37 @@ hr.section-divider {
     progress.value = s;
     stepCur.textContent = String(s);
     tCur.textContent = fmtTime(t);
-    if (!keepPlaying && !video.paused) {
-      // 요청: 클릭/드래그해도 pause 안 함 → 아무 것도 안 함
-    }
+    // 클릭/드래그해도 pause 안 함 → 아무 것도 안 함
+  }
+
+  function setCaptionByName(name) {
+    caption.textContent = displayLabelFromName(name); // 항상 "videoNN" 형태 표시
+  }
+
+  function markActive(btnEl) {
+    pickerBtns.forEach(b => b.classList.remove('is-link'));
+    pickerBtns.forEach(b => b.classList.add('is-light'));
+    btnEl.classList.remove('is-light');
+    btnEl.classList.add('is-link');
+  }
+
+  function resetUIBeforeLoad() {
+    if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+    progress.disabled = true;
+    progress.value = 0;
+    stepCur.textContent = '0';
+    stepTot.textContent = '0';
+    tCur.textContent = '0:00';
+    tTot.textContent = '0:00';
+  }
+
+  function loadVideoByName(name, autoplay=true) {
+    resetUIBeforeLoad();
+    video.pause();
+    video.src = BASE_PATH + name + '.mp4';
+    video.load();
+    setCaptionByName(name);                 // ← 비디오 바뀔 때 캡션 갱신
+    if (autoplay) video.play().catch(()=>{});
   }
 
   // ===== 메타데이터 로드 =====
@@ -598,9 +634,14 @@ hr.section-divider {
     tCur.textContent = fmtTime(0);
     tTot.textContent = fmtTime(duration);
 
-    video.play().catch(() => {
+    progress.disabled = false;
+
+    // 자동재생 아이콘 처리
+    if (!video.paused) {
+      btn.innerHTML = '<span class="icon"><i class="fas fa-pause"></i></span><span>Pause</span>';
+    } else {
       btn.innerHTML = '<span class="icon"><i class="fas fa-play"></i></span><span>Play</span>';
-    });
+    }
   });
 
   // ===== 재생/일시정지 =====
@@ -655,47 +696,25 @@ hr.section-divider {
   progress.addEventListener('input', () => { setTimeByStep(Number(progress.value) || 0, true); });
 
   // ===== 비디오 선택 버튼 =====
-  const BASE_PATH = './static/video/';
-  const pickerBtns = document.querySelectorAll('.surgx-pick');
-  function markActive(btnEl) {
-    pickerBtns.forEach(b => b.classList.remove('is-link'));
-    pickerBtns.forEach(b => b.classList.add('is-light'));
-    btnEl.classList.remove('is-light');
-    btnEl.classList.add('is-link');
-  }
-  function resetUIBeforeLoad() {
-    if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
-    progress.disabled = true;
-    progress.value = 0;
-    stepCur.textContent = '0';
-    stepTot.textContent = '0';
-    tCur.textContent = '0:00';
-    tTot.textContent = '0:00';
-  }
-  function loadVideoByName(name, autoplay=true) {
-    resetUIBeforeLoad();
-    video.pause();
-    video.src = BASE_PATH + name + '.mp4';
-    video.load();
-    if (autoplay) video.play().catch(()=>{});
-  }
   pickerBtns.forEach(btnEl => {
     btnEl.addEventListener('click', () => {
       markActive(btnEl);
       loadVideoByName(btnEl.dataset.name, true);
     });
   });
-  // 초기 active 표시
-  const current = (video.currentSrc || video.src || '').split('/').pop() || '';
-  const matched = Array.from(pickerBtns).find(b => current.includes(b.dataset.name));
-  if (matched) markActive(matched);
-  else {
-    const defBtn = document.querySelector('.surgx-pick[data-name="video41"]');
-    if (defBtn) { markActive(defBtn); loadVideoByName('video41', true); }
+
+  // ===== 초기 로드: 첫 번째 버튼을 기본값으로 =====
+  const firstBtn = pickerBtns[0];
+  if (firstBtn) {
+    markActive(firstBtn);
+    loadVideoByName(firstBtn.dataset.name, true);
+  } else {
+    // 버튼이 없다면 안전한 기본 캡션
+    setCaptionByName('video');
   }
-  video.addEventListener('loadedmetadata', () => { progress.disabled = false; });
 })();
 </script>
+
 
         </div>
       </div>
