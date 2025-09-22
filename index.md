@@ -501,25 +501,19 @@ hr.section-divider {
 <div id="surgx-mp4-player" class="box" style="max-width: 980px; margin: 0 auto;">
 
   <!-- Video picker toolbar -->
-  <div id="surgx-video-bar" class="buttons has-addons is-centered mb-3" style="justify-content:center;">
-    <button class="button is-link is-light is-rounded is-small surgx-pick"
-            data-name="video43_clipper"
-            data-caption="video43 — Clipping & Cutting (Specimen prep)">
-      video43
-    </button>
-    <button class="button is-link is-light is-rounded is-small surgx-pick"
-            data-name="video47_cleaning"
-            data-caption="video47 — Cleaning / Coagulation">
-      video47
-    </button>
-    <!--
-    <button class="button is-link is-light is-rounded is-small surgx-pick"
-            data-name="video61_pack"
-            data-caption="video61 — Packaging">
-      video61
-    </button>
-    -->
-  </div>
+<div id="surgx-video-bar" class="buttons has-addons is-centered mb-3" style="justify-content:center;">
+  <button class="button is-link is-light is-rounded is-small surgx-pick"
+          data-name="video43_clipper"
+          data-caption='"For the prediction of (2) Calot Triangle Dissection, Neuron 24 and Neuron 44, associated with concepts such as "triangle of Calot", "Calot’s triangle is identified", "C triangle", and "Calot triangle", contributed the most. However, when the clipper briefly appeared in the scene, Neuron 40, associated with the concept "clip applier", contributed significantly, explaining the misclassification as (3) Clipping and Cutting."'>
+    video43
+  </button>
+  <button class="button is-link is-light is-rounded is-small surgx-pick"
+          data-name="video47_cleaning"
+          data-caption='"For the prediction of (6) Cleaning and Coagulation, Neuron 41, associated mainly with gallbladder-related concepts, contributed the most. However, Neuron 11 and Neuron 61, linked to concepts such as "push the gallbladder in the bag", "put camera inside", "insert a port", and "remove the port", contributed heavily, explaining the misclassification as (7) Gallbladder Retraction."'>
+    video47
+  </button>
+</div>
+
 
   <!-- Video element -->
   <div style="display:flex; justify-content:center;">
