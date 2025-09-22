@@ -383,7 +383,7 @@ hr.section-divider {
         <h1 class="h-title">Main Contributions</h1>
         <ul class="content mt-4">
           <li>Introduce <strong>SurgX</strong>, a concept-based explanation framework for surgical phase recognition.</li>
-          <li>Develop cholecystectomy-tailored concept sets and analyze best practices for concept selection.</li>
+          <li>Develop cholecystectomy-tailored concept sets and conduct ablation studies on best practices for concept selection, including how to choose representative frames and representative sequences for neuron–concept annotation.</li>
           <li>Validate SurgX on Causal ASFormer and TeCNO, showing consistent concept–neuron associations that enhance interpretability.</li>
         </ul>
       </div>
