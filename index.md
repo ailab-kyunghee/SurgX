@@ -500,20 +500,70 @@ hr.section-divider {
           <!-- === Video Player Block (0.2s-step scrub) === -->
 <div id="surgx-mp4-player" class="box" style="max-width: 980px; margin: 0 auto;">
 
-  <!-- Video picker toolbar -->
-<div id="surgx-video-bar" class="buttons has-addons is-centered mb-3" style="justify-content:center;">
-  <button class="button is-link is-light is-rounded is-small surgx-pick"
-          data-name="video43_clipper"
-          data-caption='"For the prediction of (2) Calot Triangle Dissection, Neuron 24 and Neuron 44, associated with concepts such as "triangle of Calot", "Calot’s triangle is identified", "C triangle", and "Calot triangle", contributed the most. However, when the clipper briefly appeared in the scene, Neuron 40, associated with the concept "clip applier", contributed significantly, explaining the misclassification as (3) Clipping and Cutting."'>
-    video43
-  </button>
-  <button class="button is-link is-light is-rounded is-small surgx-pick"
-          data-name="video47_cleaning"
-          data-caption='"For the prediction of (6) Cleaning and Coagulation, Neuron 41, associated mainly with gallbladder-related concepts, contributed the most. However, Neuron 11 and Neuron 61, linked to concepts such as "push the gallbladder in the bag", "put camera inside", "insert a port", and "remove the port", contributed heavily, explaining the misclassification as (7) Gallbladder Retraction."'>
-    video47
-  </button>
-</div>
+  <!-- ✅ Caption styles for readability -->
+  <style>
+    .surgx-caption {
+      max-width: 920px;
+      margin: 10px auto 0 auto;
+      padding: 12px 16px;
+      background: rgba(10, 10, 12, 0.9);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 12px;
+      color: #f3f4f6;
+      line-height: 1.6;
+      font-size: 0.98rem;
+      letter-spacing: .15px;
+      box-shadow: 0 6px 22px rgba(0,0,0,0.18);
+      backdrop-filter: saturate(120%) blur(2px);
+      text-wrap: pretty;
+      word-break: keep-all;
+    }
+    .surgx-caption .phase {
+      font-weight: 700;
+      font-variant-numeric: lining-nums;
+    }
+    .surgx-caption .neuron {
+      display: inline-block;
+      padding: 1px 8px;
+      margin: 0 2px;
+      border-radius: 999px;
+      background: #1f2937;
+      border: 1px solid rgba(255,255,255,0.08);
+      font-weight: 600;
+      font-size: 0.92em;
+      vertical-align: baseline;
+    }
+    .surgx-caption .concept {
+      display: inline-block;
+      padding: 1px 6px;
+      margin: 0 2px;
+      border-radius: 8px;
+      background: #0f172a;
+      border: 1px dashed rgba(255,255,255,0.15);
+      font-size: 0.92em;
+      font-style: italic;
+      vertical-align: baseline;
+      white-space: nowrap;
+    }
+    .surgx-caption .arrow {
+      font-weight: 700;
+      padding: 0 2px;
+    }
+  </style>
 
+  <!-- Video picker toolbar -->
+  <div id="surgx-video-bar" class="buttons has-addons is-centered mb-3" style="justify-content:center;">
+    <button class="button is-link is-light is-rounded is-small surgx-pick"
+            data-name="video43_clipper"
+            data-caption='For the prediction of "(2) Calot Triangle Dissection", Neuron 24 and Neuron 44, associated with concepts such as "triangle of Calot", "Calot’s triangle is identified", "C triangle", and "Calot triangle", contributed the most. However, when the clipper briefly appeared in the scene, Neuron 40, associated with the concept "clip applier", contributed significantly, explaining the misclassification as "(3) Clipping and Cutting".'>
+      video43
+    </button>
+    <button class="button is-link is-light is-rounded is-small surgx-pick"
+            data-name="video47_cleaning"
+            data-caption='For the prediction of "(6) Cleaning and Coagulation", Neuron 41, associated mainly with gallbladder-related concepts, contributed the most. However, Neuron 11 and Neuron 61, linked to concepts such as "push the gallbladder in the bag", "put camera inside", "insert a port", and "remove the port", contributed heavily, explaining the misclassification as "(7) Gallbladder Retraction".'>
+      video47
+    </button>
+  </div>
 
   <!-- Video element -->
   <div style="display:flex; justify-content:center;">
@@ -541,8 +591,8 @@ hr.section-divider {
     </span>
   </div>
 
-  <!-- Caption (customizable via data-caption on buttons) -->
-  <div id="surgx-video-caption" class="has-text-centered is-size-6 mt-2" style="font-weight:600;"></div>
+  <!-- Caption (readability enhanced) -->
+  <div id="surgx-video-caption" class="surgx-caption has-text-centered is-size-6 mt-2" style="font-weight:500;"></div>
 
 </div>
 
@@ -576,6 +626,35 @@ hr.section-divider {
     const m = Math.floor(s/60), sec = s%60;
     return `${m}:${String(sec).padStart(2,'0')}`;
   };
+  const escapeHTML = (str) =>
+    (str ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+
+  // Highlight helpers for caption
+  function stylizeCaption(raw) {
+    // 1) Escape HTML first
+    let s = escapeHTML(raw);
+
+    // 2) Highlight phases like "(2) Calot Triangle Dissection)"
+    s = s.replace(/\((\d+)\)\s*([A-Za-z][^",)]+)/g, (_m, num, name) =>
+      `<span class="phase">(${num}) ${name.trim()}</span>`
+    );
+
+    // 3) Highlight Neuron NN
+    s = s.replace(/\bNeuron\s+(\d+)\b/g, (_m, id) =>
+      `<span class="neuron">Neuron ${id}</span>`
+    );
+
+    // 4) Highlight quoted concepts "...."
+    s = s.replace(/&quot;([^&]+?)&quot;/g, (_m, inner) =>
+      `<span class="concept">“${inner}”</span>`
+    );
+
+    // 5) Arrow for “misclassification as …”
+    s = s.replace(/\bmisclassification as\b/gi, `<span class="arrow">→</span> misclassification as`);
+
+    return s;
+  }
+
   const timeToStep = (t) => Math.round(t / STEP_SEC);      // 0-based step index
   const stepToTime = (step) => step * STEP_SEC;             // seconds
   const posToStep  = (clientX) => {
@@ -607,7 +686,7 @@ hr.section-divider {
     const btn = Array.from(pickerBtns).find(b => b.dataset.name === name);
     const fallback = displayLabelFromName(name);
     const text = (btn && btn.dataset.caption && btn.dataset.caption.trim()) || fallback;
-    caption.textContent = text;
+    caption.innerHTML = stylizeCaption(text);
   }
 
   function markActive(btnEl) {
@@ -729,6 +808,7 @@ hr.section-divider {
   }
 })();
 </script>
+
 
 
         </div>
