@@ -480,16 +480,16 @@ hr.section-divider {
         <div class="figure section-figure">
           <img src="./static/image/models-prediction-explanation.png" alt="models prediction explanation">
         </div>
-
         <div class="content">
-          The pipeline for annotating concepts to neurons proceeds in three stages:
+          The explanation process at test time proceeds as follows:
           <ol>
-            <li><strong>A. Neuron Representative Sequence Selection</strong> – Select representative activation sequences for each neuron.</li>
-            <li><strong>B. Concept Set Selection</strong> – Choose among three concept sets; <em>ChoLec-270</em> performs best in our study.</li>
-            <li><strong>C. Neuron–Concept Association</strong> – Match neuron sequences with concepts via similarity in a surgical VLM space.</li>
+            <li>Input surgical frames are processed by the phase recognition model.</li>
+            <li>Neuron contributions to the final prediction are computed using the contribution formula.</li>
+            <li>Important neurons (e.g., Neuron 2, Neuron 128) are identified, and their annotated concepts 
+                (“extract the gallbladder into the bag”, “specimen bag”, “gallbladder”) explain the model’s decision.</li>
           </ol>
-          Details of each stage are provided below.
         </div>
+
         <div class="content">
           <h4 class="h-subtitle">Qualitative Results – Explanation Examples</h4>
           <!-- === Video Player Block (0.2s-step scrub) === -->
