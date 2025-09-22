@@ -492,151 +492,166 @@ hr.section-divider {
         </div>
         <div class="content">
           <h4 class="h-subtitle">Qualitative Results – Explanation Examples</h4>
-          <!-- === GIF Player: ./static/gif/video41.gif === -->
-<div id="surgx-gif-player" class="box" style="max-width: 980px; margin: 0 auto;">
+          <!-- === MP4 Player: ./static/video/video41.mp4 === -->
+<div id="surgx-mp4-player" class="box" style="max-width: 980px; margin: 0 auto;">
   <div style="display:flex; justify-content:center;">
-    <canvas id="surgx-gif-canvas" style="max-width:100%; height:auto;"></canvas>
+    <video
+      id="surgx-mp4"
+      src="./static/video/video41_022501-029976.mp4"
+      playsinline
+      muted
+      preload="metadata"
+      style="max-width:100%; height:auto; background:#000;"
+    ></video>
   </div>
 
   <div class="mt-3" style="display:flex; align-items:center; gap:.75rem;">
-    <button id="surgx-gif-toggle" class="button is-dark is-rounded is-small">
+    <button id="surgx-mp4-toggle" class="button is-dark is-rounded is-small">
       <span class="icon"><i class="fas fa-pause"></i></span>
       <span>Pause</span>
     </button>
 
-    <input id="surgx-gif-progress" type="range" min="1" max="1" value="1" step="1" style="flex:1;" />
+    <!-- 프레임 단위 스크럽용 슬라이더 -->
+    <input id="surgx-mp4-progress" type="range" min="1" max="1" value="1" step="1" style="flex:1;" />
     <span class="tag is-light is-rounded">
-      <span id="surgx-gif-cur">1</span>/<span id="surgx-gif-total">1</span>
+      <span id="surgx-mp4-cur">1</span>/<span id="surgx-mp4-total">1</span>
     </span>
+  </div>
+
+  <div class="mt-2" style="display:flex; justify-content:flex-end; gap:.5rem; font-size:.9rem; color:#666;">
+    <span><span id="surgx-time-cur">0:00</span> / <span id="surgx-time-total">0:00</span></span>
   </div>
 </div>
 
-<!-- gifler: lightweight gif->canvas player (CDN) -->
-<script src="https://unpkg.com/gifler@0.1.0/gifler.min.js"></script>
-
 <script>
 (function() {
-  const GIF_SRC = './static/gif/video41_003001-004476.gif';
+  // ===== 설정 =====
+  // 프레임당 0.5초였다면 FPS = 2, 0.25초였다면 FPS = 4 처럼 지정
+  const FPS = 2;  // <-- 필요에 맞게 조정하세요
 
-  const canvas   = document.getElementById('surgx-gif-canvas');
-  const btn      = document.getElementById('surgx-gif-toggle');
-  const progress = document.getElementById('surgx-gif-progress');
-  const curSpan  = document.getElementById('surgx-gif-cur');
-  const totSpan  = document.getElementById('surgx-gif-total');
+  const video    = document.getElementById('surgx-mp4');
+  const btn      = document.getElementById('surgx-mp4-toggle');
+  const progress = document.getElementById('surgx-mp4-progress');
+  const curSpan  = document.getElementById('surgx-mp4-cur');
+  const totSpan  = document.getElementById('surgx-mp4-total');
+  const tCur     = document.getElementById('surgx-time-cur');
+  const tTot     = document.getElementById('surgx-time-total');
 
-  let animator = null;
-  let isPlaying = true;
   let totalFrames = 1;
-  let lastDrawnIndex = 0;
+  let isScrubbing = false;
+  let rafId = null;
 
-  // 초기 로드: 자동재생, 총 프레임 수 파악, 진행바 세팅
-  gifler(GIF_SRC).get(function(a) {
-    animator = a;
+  function fmtTime(sec) {
+    if (!isFinite(sec)) return '0:00';
+    sec = Math.max(0, Math.floor(sec));
+    const m = Math.floor(sec / 60);
+    const s = sec % 60;
+    return m + ':' + String(s).padStart(2, '0');
+  }
 
-    a.onDrawFrame = function(ctx, frame) {
-      // 캔버스 크기 동기화
-      if (canvas.width !== frame.width || canvas.height !== frame.height) {
-        canvas.width  = frame.width;
-        canvas.height = frame.height;
-      }
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.drawImage(frame.buffer, frame.x, frame.y);
+  // 메타데이터 로드 후 초기화
+  video.addEventListener('loadedmetadata', () => {
+    const duration = video.duration || 0;
+    totalFrames = Math.max(1, Math.round(duration * FPS));
+    progress.max = totalFrames;
+    progress.value = 1;
+    curSpan.textContent = '1';
+    totSpan.textContent = String(totalFrames);
+    tTot.textContent = fmtTime(duration);
 
-      // 진행바/표시 업데이트
-      lastDrawnIndex = (typeof frame.index === 'number' ? frame.index : (lastDrawnIndex+1));
-      curSpan.textContent = (lastDrawnIndex + 1);
+    // 자동 재생 시도 (모바일 정책상 muted/playsinline 필요)
+    // 이미 muted, playsinline 설정됨
+    video.play().catch(() => {
+      // 자동재생 실패 시 버튼 상태만 Play로 바꿔둠
+      btn.innerHTML = '<span class="icon"><i class="fas fa-play"></i></span><span>Play</span>';
+    });
+  });
 
-      // totalFrames은 첫 프레임들 그린 뒤 한번만 세팅
-      if (!totalFrames && a && a._frames && a._frames.length) {
-        totalFrames = a._frames.length;
-        progress.max = totalFrames;
-        totSpan.textContent = totalFrames;
-      }
+  // 시간 업데이트 → 진행바/표시 갱신
+  function tick() {
+    const curTime = video.currentTime || 0;
+    const duration = video.duration || 0;
 
-      // 일부 구현체는 위에서 totalFrames를 못 가져올 수 있어 방어적으로 갱신
-      if (a && a._frames && a._frames.length && totalFrames !== a._frames.length) {
-        totalFrames = a._frames.length;
-        progress.max = totalFrames;
-        totSpan.textContent = totalFrames;
-      }
-
-      // 진행바 값 동기화 (사용자 스크럽 중이 아닐 때만)
-      if (!progress._isScrubbing) {
-        progress.value = lastDrawnIndex + 1;
-      }
-    };
-
-    // 캔버스에 애니메이션 부착 후 자동재생
-    a.animateInCanvas(canvas);
-    isPlaying = true;
-
-    // 초기 total 프레임 표시(일부 환경에서는 로딩 직후 접근 가능)
-    if (a._frames && a._frames.length) {
-      totalFrames = a._frames.length;
-      progress.max = totalFrames;
-      totSpan.textContent = totalFrames;
-    } else {
-      // 일단 1로 두고, onDrawFrame에서 보정
-      totalFrames = 1;
-      progress.max = 1;
-      totSpan.textContent = 1;
+    if (!isScrubbing && duration > 0) {
+      const curFrame = Math.min(totalFrames, Math.max(1, Math.round(curTime * FPS) + 1));
+      progress.value = curFrame;
+      curSpan.textContent = String(curFrame);
     }
+    tCur.textContent = fmtTime(curTime);
+
+    rafId = requestAnimationFrame(tick);
+  }
+
+  video.addEventListener('play', () => {
+    btn.innerHTML = '<span class="icon"><i class="fas fa-pause"></i></span><span>Pause</span>';
+    if (!rafId) rafId = requestAnimationFrame(tick);
+  });
+
+  video.addEventListener('pause', () => {
+    btn.innerHTML = '<span class="icon"><i class="fas fa-play"></i></span><span>Play</span>';
+    if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+    // 마지막 한 번 상태 갱신
+    tick();
+  });
+
+  video.addEventListener('ended', () => {
+    // 끝나면 일시정지 상태로 두고 슬라이더를 마지막 프레임에
+    if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+    const last = totalFrames;
+    progress.value = last;
+    curSpan.textContent = String(last);
+    btn.innerHTML = '<span class="icon"><i class="fas fa-play"></i></span><span>Play</span>';
   });
 
   // 재생/일시정지 토글
-  btn.addEventListener('click', function() {
-    if (!animator) return;
-    if (isPlaying) {
-      animator.stop();
-      isPlaying = false;
-      btn.innerHTML = '<span class="icon"><i class="fas fa-play"></i></span><span>Play</span>';
-    } else {
-      animator.play();
-      isPlaying = true;
-      btn.innerHTML = '<span class="icon"><i class="fas fa-pause"></i></span><span>Pause</span>';
-    }
+  btn.addEventListener('click', () => {
+    if (video.paused) video.play();
+    else video.pause();
   });
 
-  // 스크럽 시작/끝 표시 (진행바 드래그 중 자동 업데이트 억제)
-  progress.addEventListener('mousedown',  () => progress._isScrubbing = true);
-  progress.addEventListener('touchstart', () => progress._isScrubbing = true, {passive:true});
-  function endScrub() { progress._isScrubbing = false; }
+  // 스크럽 시작/끝
+  const startScrub = () => { isScrubbing = true; video.pause(); };
+  const endScrub = () => {
+    isScrubbing = false;
+    // 일시정지 유지: 사용자가 멈춰놓고 프레임 관찰 가능
+    // 다시 재생하려면 버튼 누르면 됨
+  };
+  progress.addEventListener('mousedown', startScrub);
+  progress.addEventListener('touchstart', startScrub, {passive:true});
   progress.addEventListener('mouseup', endScrub);
   progress.addEventListener('mouseleave', endScrub);
   progress.addEventListener('touchend', endScrub);
 
-  // 사용자가 진행바 이동 → 해당 프레임으로 점프
-  function seekToSliderFrame() {
-    if (!animator || !totalFrames) return;
-    const target = Math.max(1, Math.min(totalFrames, parseInt(progress.value, 10) || 1)) - 1;
-
-    // 일시정지 상태 유지: 사용자가 정밀 탐색 시 화면만 바꾸고 재생은 하지 않음
-    const wasPlaying = isPlaying;
-    if (wasPlaying) animator.stop();
-
-    if (typeof animator.setFrameIndex === 'function') {
-      animator.setFrameIndex(target);
-    } else if (typeof animator.moveToFrame === 'function') {
-      animator.moveToFrame(target);
-    }
-
-    // 수동으로 한 프레임 그리기(일부 구현체 대비)
-    if (animator.onDrawFrame && animator._frames && animator._frames[target]) {
-      const ctx = canvas.getContext('2d');
-      const frame = animator._frames[target];
-      animator.onDrawFrame(ctx, frame);
-    }
-
-    if (wasPlaying) {
-      animator.play();
-      isPlaying = true;
-      btn.innerHTML = '<span class="icon"><i class="fas fa-pause"></i></span><span>Pause</span>';
-    } else {
-      isPlaying = false;
-      btn.innerHTML = '<span class="icon"><i class="fas fa-play"></i></span><span>Play</span>';
-    }
+  // 진행바 이동 → 해당 프레임 시간으로 점프
+  function seekToFrame() {
+    if (!totalFrames || !FPS) return;
+    const targetFrame = Math.max(1, Math.min(totalFrames, parseInt(progress.value, 10) || 1));
+    const t = (targetFrame - 1) / FPS; // 프레임→초
+    video.currentTime = t;
+    curSpan.textContent = String(targetFrame);
+    tCur.textContent = fmtTime(t);
   }
-  progress.addEventListener('input', seekToSliderFrame);
+  progress.addEventListener('input', seekToFrame);
+
+  // 키보드 단축키(←/→)로 프레임 이동
+  document.addEventListener('keydown', (e) => {
+    if (!totalFrames || !FPS) return;
+    if (e.key === 'ArrowRight') {
+      e.preventDefault();
+      const curFrame = Math.min(totalFrames, Math.round((video.currentTime || 0) * FPS) + 2);
+      progress.value = curFrame;
+      startScrub();
+      seekToFrame();
+      endScrub();
+    } else if (e.key === 'ArrowLeft') {
+      e.preventDefault();
+      const curFrame = Math.max(1, Math.round((video.currentTime || 0) * FPS));
+      progress.value = curFrame;
+      startScrub();
+      seekToFrame();
+      endScrub();
+    }
+  });
 })();
 </script>
 
