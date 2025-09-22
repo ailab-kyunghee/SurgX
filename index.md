@@ -425,7 +425,12 @@ hr.section-divider {
         <div class="content">
           <h4 class="h-minor" style="color:#3B6B1C;">Ablation Study: Frame Selection</h4>
         </div>
-
+        <div class="content">
+          <ul>
+            <li> <strong>Concept Alignment</strong>: Cosine similarity between key neuron’s concepts and the groundtruth class</li>
+            <li> <strong>Prediction Interpretability</strong>: Cosine similarity between key neuron’s concepts and predicted class</li>
+          </ul>
+        </div>
         <div class="figure section-figure">
           <img src="./static/image/table2.png" alt="frame selection ablation">
         </div>
@@ -482,12 +487,12 @@ hr.section-divider {
         </div>
         <div class="content">
           The explanation process at test time proceeds as follows:
-          <ol>
+          <ul>
             <li>Input surgical frames are processed by the phase recognition model.</li>
             <li>Neuron contributions to the final prediction are computed using the contribution formula.</li>
             <li>Important neurons (e.g., Neuron 2, Neuron 128) are identified, and their annotated concepts 
                 (“extract the gallbladder into the bag”, “specimen bag”, “gallbladder”) explain the model’s decision.</li>
-          </ol>
+          </ul>
         </div>
 
         <div class="content">
