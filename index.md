@@ -502,9 +502,23 @@ hr.section-divider {
 
   <!-- Video picker toolbar -->
   <div id="surgx-video-bar" class="buttons has-addons is-centered mb-3" style="justify-content:center;">
-    <button class="button is-link is-light is-rounded is-small surgx-pick" data-name="video43_clipper">video43</button>
-    <button class="button is-link is-light is-rounded is-small surgx-pick" data-name="video47_cleaning">video47</button>
-    <!-- <button class="button is-link is-light is-rounded is-small surgx-pick" data-name="video61_pack">video61</button> -->
+    <button class="button is-link is-light is-rounded is-small surgx-pick"
+            data-name="video43_clipper"
+            data-caption="video43 — Clipping & Cutting (Specimen prep)">
+      video43
+    </button>
+    <button class="button is-link is-light is-rounded is-small surgx-pick"
+            data-name="video47_cleaning"
+            data-caption="video47 — Cleaning / Coagulation">
+      video47
+    </button>
+    <!--
+    <button class="button is-link is-light is-rounded is-small surgx-pick"
+            data-name="video61_pack"
+            data-caption="video61 — Packaging">
+      video61
+    </button>
+    -->
   </div>
 
   <!-- Video element -->
@@ -525,7 +539,7 @@ hr.section-divider {
       <span>Pause</span>
     </button>
 
-    <!-- 0.2초 단위 스크럽 -->
+    <!-- 0.2초 단위 스크럽 (드래그/클릭해도 pause 안 함) -->
     <input id="surgx-mp4-progress" type="range" min="0" max="0" value="0" step="1" style="flex:1;" />
     <span class="tag is-light is-rounded">
       <span id="surgx-step-cur">0</span>/<span id="surgx-step-total">0</span>
@@ -533,16 +547,16 @@ hr.section-divider {
     </span>
   </div>
 
-  <!-- Per-video caption: always shows "videoNN" under the video -->
-  <div id="surgx-video-caption" class="has-text-centered is-size-6 mt-2" style="font-weight:600;">video43</div>
+  <!-- Caption (customizable via data-caption on buttons) -->
+  <div id="surgx-video-caption" class="has-text-centered is-size-6 mt-2" style="font-weight:600;"></div>
 
 </div>
 
 <script>
 (function() {
   // ===== 설정 =====
-  const STEP_SEC = 0.2;              // 드래그/클릭 시간 해상도 (0.2초 단위)
-  const BASE_PATH = './static/video/';
+  const STEP_SEC = 0.2;                  // 드래그/클릭 시간 해상도 (0.2초 단위)
+  const BASE_PATH = './static/video/';   // mp4 경로 prefix
 
   const video    = document.getElementById('surgx-mp4');
   const btn      = document.getElementById('surgx-mp4-toggle');
@@ -592,11 +606,14 @@ hr.section-divider {
     progress.value = s;
     stepCur.textContent = String(s);
     tCur.textContent = fmtTime(t);
-    // 클릭/드래그해도 pause 안 함 → 아무 것도 안 함
   }
 
   function setCaptionByName(name) {
-    caption.textContent = displayLabelFromName(name); // 항상 "videoNN" 형태 표시
+    // 해당 name을 가진 버튼에서 data-caption 우선 사용, 없으면 "videoNN"
+    const btn = Array.from(pickerBtns).find(b => b.dataset.name === name);
+    const fallback = displayLabelFromName(name);
+    const text = (btn && btn.dataset.caption && btn.dataset.caption.trim()) || fallback;
+    caption.textContent = text;
   }
 
   function markActive(btnEl) {
@@ -641,7 +658,7 @@ hr.section-divider {
 
     progress.disabled = false;
 
-    // 자동재생 아이콘 처리
+    // 자동재생/아이콘 상태 동기화
     if (!video.paused) {
       btn.innerHTML = '<span class="icon"><i class="fas fa-pause"></i></span><span>Pause</span>';
     } else {
@@ -712,10 +729,9 @@ hr.section-divider {
   const firstBtn = pickerBtns[0];
   if (firstBtn) {
     markActive(firstBtn);
-    loadVideoByName(firstBtn.dataset.name, true);
+    loadVideoByName(firstBtn.dataset.name, true); // 내부에서 setCaptionByName 호출됨
   } else {
-    // 버튼이 없다면 안전한 기본 캡션
-    setCaptionByName('video');
+    caption.textContent = 'video'; // 버튼이 없을 때 안전한 기본값
   }
 })();
 </script>
