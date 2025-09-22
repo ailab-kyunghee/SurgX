@@ -497,11 +497,9 @@ hr.section-divider {
 
   <!-- Video picker toolbar -->
   <div id="surgx-video-bar" class="buttons has-addons is-centered mb-3" style="justify-content:center;">
-    <button class="button is-link is-light is-rounded is-small surgx-pick" data-name="video41">video41</button>
-    <button class="button is-link is-light is-rounded is-small surgx-pick" data-name="video42">video42</button>
-    <button class="button is-link is-light is-rounded is-small surgx-pick" data-name="video43">video43</button>
-    <button class="button is-link is-light is-rounded is-small surgx-pick" data-name="video44">video44</button>
-    <button class="button is-link is-light is-rounded is-small surgx-pick" data-name="video45">video45</button>
+    <button class="button is-link is-light is-rounded is-small surgx-pick" data-name="video43_clipper">video43</button>
+    <button class="button is-link is-light is-rounded is-small surgx-pick" data-name="video47_cleaning">video47</button>
+    <button class="button is-link is-light is-rounded is-small surgx-pick" data-name="video61_pack">video61</button>
   </div>
 
   <!-- Video element -->
