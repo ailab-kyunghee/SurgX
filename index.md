@@ -492,12 +492,23 @@ hr.section-divider {
         </div>
         <div class="content">
           <h4 class="h-subtitle">Qualitative Results – Explanation Examples</h4>
-          <!-- === MP4 Player: ./static/video/video41.mp4 === -->
+          <!-- === Video Player Block === -->
 <div id="surgx-mp4-player" class="box" style="max-width: 980px; margin: 0 auto;">
+
+  <!-- Video picker toolbar -->
+  <div id="surgx-video-bar" class="buttons has-addons is-centered mb-3" style="justify-content:center;">
+    <button class="button is-link is-light is-rounded is-small surgx-pick" data-name="video41">video41</button>
+    <button class="button is-link is-light is-rounded is-small surgx-pick" data-name="video42">video42</button>
+    <button class="button is-link is-light is-rounded is-small surgx-pick" data-name="video43">video43</button>
+    <button class="button is-link is-light is-rounded is-small surgx-pick" data-name="video44">video44</button>
+    <button class="button is-link is-light is-rounded is-small surgx-pick" data-name="video45">video45</button>
+  </div>
+
+  <!-- Video element -->
   <div style="display:flex; justify-content:center;">
     <video
       id="surgx-mp4"
-      src="./static/video/video41_022501-029976.mp4"
+      src="./static/video/video41.mp4"
       playsinline
       muted
       preload="metadata"
@@ -505,19 +516,20 @@ hr.section-divider {
     ></video>
   </div>
 
+  <!-- Controls -->
   <div class="mt-3" style="display:flex; align-items:center; gap:.75rem;">
     <button id="surgx-mp4-toggle" class="button is-dark is-rounded is-small">
       <span class="icon"><i class="fas fa-pause"></i></span>
       <span>Pause</span>
     </button>
 
-    <!-- 프레임 단위 스크럽용 슬라이더 -->
     <input id="surgx-mp4-progress" type="range" min="1" max="1" value="1" step="1" style="flex:1;" />
     <span class="tag is-light is-rounded">
       <span id="surgx-mp4-cur">1</span>/<span id="surgx-mp4-total">1</span>
     </span>
   </div>
 
+  <!-- Time display -->
   <div class="mt-2" style="display:flex; justify-content:flex-end; gap:.5rem; font-size:.9rem; color:#666;">
     <span><span id="surgx-time-cur">0:00</span> / <span id="surgx-time-total">0:00</span></span>
   </div>
@@ -526,8 +538,7 @@ hr.section-divider {
 <script>
 (function() {
   // ===== 설정 =====
-  // 프레임당 0.5초였다면 FPS = 2, 0.25초였다면 FPS = 4 처럼 지정
-  const FPS = 2;  // <-- 필요에 맞게 조정하세요
+  const FPS = 2; // 프레임당 0.5초면 2
 
   const video    = document.getElementById('surgx-mp4');
   const btn      = document.getElementById('surgx-mp4-toggle');
@@ -538,120 +549,142 @@ hr.section-divider {
   const tTot     = document.getElementById('surgx-time-total');
 
   let totalFrames = 1;
-  let isScrubbing = false;
   let rafId = null;
+  let dragging = false;
+  let rectCache = null;
 
-  function fmtTime(sec) {
-    if (!isFinite(sec)) return '0:00';
-    sec = Math.max(0, Math.floor(sec));
-    const m = Math.floor(sec / 60);
-    const s = sec % 60;
-    return m + ':' + String(s).padStart(2, '0');
-  }
+  // ===== 유틸 =====
+  const fmtTime = s => {
+    if (!isFinite(s)) return '0:00';
+    s = Math.max(0, Math.floor(s));
+    const m = Math.floor(s/60), sec = s%60;
+    return `${m}:${String(sec).padStart(2,'0')}`;
+  };
+  const frameToTime = f => (f - 1) / FPS;
+  const curFrame = () => Math.min(totalFrames, Math.max(1, Math.round((video.currentTime||0)*FPS) + 1));
+  const setFrame = f => {
+    const clamped = Math.max(1, Math.min(totalFrames, f|0));
+    const t = frameToTime(clamped);
+    video.currentTime = t;
+    progress.value = clamped;
+    curSpan.textContent = String(clamped);
+    tCur.textContent = fmtTime(t);
+  };
+  const posToFrame = (clientX) => {
+    const rect = rectCache || progress.getBoundingClientRect();
+    rectCache = rect;
+    const x = (clientX - rect.left) / rect.width; // 0~1
+    return Math.round(Math.max(0, Math.min(1, x)) * (totalFrames - 1)) + 1;
+  };
 
-  // 메타데이터 로드 후 초기화
+  // ===== 메타데이터 로드 =====
   video.addEventListener('loadedmetadata', () => {
     const duration = video.duration || 0;
     totalFrames = Math.max(1, Math.round(duration * FPS));
     progress.max = totalFrames;
+    progress.step = 1;
     progress.value = 1;
     curSpan.textContent = '1';
     totSpan.textContent = String(totalFrames);
     tTot.textContent = fmtTime(duration);
-
-    // 자동 재생 시도 (모바일 정책상 muted/playsinline 필요)
-    // 이미 muted, playsinline 설정됨
     video.play().catch(() => {
-      // 자동재생 실패 시 버튼 상태만 Play로 바꿔둠
       btn.innerHTML = '<span class="icon"><i class="fas fa-play"></i></span><span>Play</span>';
     });
   });
 
-  // 시간 업데이트 → 진행바/표시 갱신
-  function tick() {
-    const curTime = video.currentTime || 0;
-    const duration = video.duration || 0;
-
-    if (!isScrubbing && duration > 0) {
-      const curFrame = Math.min(totalFrames, Math.max(1, Math.round(curTime * FPS) + 1));
-      progress.value = curFrame;
-      curSpan.textContent = String(curFrame);
-    }
-    tCur.textContent = fmtTime(curTime);
-
-    rafId = requestAnimationFrame(tick);
-  }
-
+  // ===== 재생/일시정지 =====
   video.addEventListener('play', () => {
     btn.innerHTML = '<span class="icon"><i class="fas fa-pause"></i></span><span>Pause</span>';
     if (!rafId) rafId = requestAnimationFrame(tick);
   });
-
   video.addEventListener('pause', () => {
     btn.innerHTML = '<span class="icon"><i class="fas fa-play"></i></span><span>Play</span>';
     if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
-    // 마지막 한 번 상태 갱신
     tick();
   });
-
   video.addEventListener('ended', () => {
-    // 끝나면 일시정지 상태로 두고 슬라이더를 마지막 프레임에
     if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
-    const last = totalFrames;
-    progress.value = last;
-    curSpan.textContent = String(last);
+    setFrame(totalFrames);
     btn.innerHTML = '<span class="icon"><i class="fas fa-play"></i></span><span>Play</span>';
   });
+  btn.addEventListener('click', () => { if (video.paused) video.play(); else video.pause(); });
 
-  // 재생/일시정지 토글
-  btn.addEventListener('click', () => {
-    if (video.paused) video.play();
-    else video.pause();
-  });
-
-  // 스크럽 시작/끝
-  const startScrub = () => { isScrubbing = true; video.pause(); };
-  const endScrub = () => {
-    isScrubbing = false;
-    // 일시정지 유지: 사용자가 멈춰놓고 프레임 관찰 가능
-    // 다시 재생하려면 버튼 누르면 됨
-  };
-  progress.addEventListener('mousedown', startScrub);
-  progress.addEventListener('touchstart', startScrub, {passive:true});
-  progress.addEventListener('mouseup', endScrub);
-  progress.addEventListener('mouseleave', endScrub);
-  progress.addEventListener('touchend', endScrub);
-
-  // 진행바 이동 → 해당 프레임 시간으로 점프
-  function seekToFrame() {
-    if (!totalFrames || !FPS) return;
-    const targetFrame = Math.max(1, Math.min(totalFrames, parseInt(progress.value, 10) || 1));
-    const t = (targetFrame - 1) / FPS; // 프레임→초
-    video.currentTime = t;
-    curSpan.textContent = String(targetFrame);
-    tCur.textContent = fmtTime(t);
-  }
-  progress.addEventListener('input', seekToFrame);
-
-  // 키보드 단축키(←/→)로 프레임 이동
-  document.addEventListener('keydown', (e) => {
-    if (!totalFrames || !FPS) return;
-    if (e.key === 'ArrowRight') {
-      e.preventDefault();
-      const curFrame = Math.min(totalFrames, Math.round((video.currentTime || 0) * FPS) + 2);
-      progress.value = curFrame;
-      startScrub();
-      seekToFrame();
-      endScrub();
-    } else if (e.key === 'ArrowLeft') {
-      e.preventDefault();
-      const curFrame = Math.max(1, Math.round((video.currentTime || 0) * FPS));
-      progress.value = curFrame;
-      startScrub();
-      seekToFrame();
-      endScrub();
+  // ===== 진행바 동기화 =====
+  function tick() {
+    const duration = video.duration || 0;
+    if (duration > 0 && !dragging) {
+      const f = curFrame();
+      progress.value = f;
+      curSpan.textContent = String(f);
     }
+    tCur.textContent = fmtTime(video.currentTime || 0);
+    rafId = requestAnimationFrame(tick);
+  }
+
+  // ===== 진행바 드래그/클릭 (1프레임 단위, pause 안 함) =====
+  progress.addEventListener('pointerdown', (e) => {
+    dragging = true; rectCache = null;
+    progress.setPointerCapture(e.pointerId);
+    e.preventDefault();
+    setFrame(posToFrame(e.clientX));
   });
+  progress.addEventListener('pointermove', (e) => {
+    if (!dragging) return;
+    e.preventDefault();
+    setFrame(posToFrame(e.clientX));
+  });
+  progress.addEventListener('pointerup', (e) => {
+    dragging = false; rectCache = null;
+    progress.releasePointerCapture(e.pointerId);
+    e.preventDefault();
+  });
+  progress.addEventListener('input', () => { setFrame(parseInt(progress.value, 10) || 1); });
+  progress.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight') { e.preventDefault(); setFrame(curFrame() + 1); }
+    if (e.key === 'ArrowLeft')  { e.preventDefault(); setFrame(curFrame() - 1); }
+  });
+
+  // ===== 비디오 선택 버튼 =====
+  const BASE_PATH = './static/video/';
+  const pickerBtns = document.querySelectorAll('.surgx-pick');
+  function markActive(btn) {
+    pickerBtns.forEach(b => b.classList.remove('is-link'));
+    pickerBtns.forEach(b => b.classList.add('is-light'));
+    btn.classList.remove('is-light');
+    btn.classList.add('is-link');
+  }
+  function resetUIBeforeLoad() {
+    if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+    progress.disabled = true;
+    progress.value = 1;
+    curSpan.textContent = '1';
+    totSpan.textContent = '…';
+    tCur.textContent = '0:00';
+    tTot.textContent = '0:00';
+  }
+  function loadVideoByName(name, autoplay=true) {
+    resetUIBeforeLoad();
+    video.pause();
+    video.src = BASE_PATH + name + '.mp4';
+    video.load();
+    if (autoplay) video.play().catch(()=>{});
+  }
+  pickerBtns.forEach(btnEl => {
+    btnEl.addEventListener('click', () => {
+      markActive(btnEl);
+      loadVideoByName(btnEl.dataset.name, true);
+    });
+  });
+  // 초기 active 표시
+  const current = (video.currentSrc || video.src || '').split('/').pop() || '';
+  const matched = Array.from(pickerBtns).find(b => current.includes(b.dataset.name));
+  if (matched) markActive(matched);
+  else {
+    const defBtn = document.querySelector('.surgx-pick[data-name="video41"]');
+    if (defBtn) { markActive(defBtn); loadVideoByName('video41', true); }
+  }
+  video.addEventListener('loadedmetadata', () => { progress.disabled = false; });
+
 })();
 </script>
 
