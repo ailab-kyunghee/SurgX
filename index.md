@@ -401,6 +401,87 @@ hr.section-divider {
         <div class="content">
           The pipeline for annotating concepts to neurons proceeds in three stages:
           <ol>
+            strong>A. Neuron Representative Sequence Selection</strong> – Select representative activation sequences for each neuron.
+            <strong>B. Concept Set Selection</strong> – Choose among three concept sets; <em>ChoLec-270</em> performs best in our study.
+            <strong>C. Neuron–Concept Association</strong> – Match neuron sequences with concepts via similarity in a surgical VLM space.
+          </ol>
+          Details of each stage are provided below.
+        </div>
+
+        <div class="content">
+          <h3 class="h-subtitle" style="color:#3B6B1C;">A. Neuron Representative Sequence Selection</h3>
+        </div>
+
+        <div class="figure section-figure">
+          <img src="./static/image/representative-sequence-selection.png" alt="representative sequence selection">
+        </div>
+
+        <div class="content">
+          Given a trained temporal phase recognizer (e.g., Causal ASFormer or TeCNO), we first select frames that yield high activations in the penultimate layer. Because temporal models respond to sequences rather than single frames, we extend each selected frame with its preceding frames to form a representative sequence. Ablation studies are summarized below.
+        </div>
+
+        <div class="content">
+          <h4 class="h-minor" style="color:#3B6B1C;">Ablation Study: Frame Selection</h4>
+        </div>
+
+        <div class="figure section-figure">
+          <img src="./static/image/table2.png" alt="frame selection ablation">
+        </div>
+
+        <div class="content">
+          <h4 class="h-minor" style="color:#3B6B1C;">Ablation Study: Sequence Length</h4>
+        </div>
+
+        <div class="figure section-figure">
+          <img src="./static/image/table3.png" alt="sequence length ablation">
+        </div>
+
+        <div class="content">
+          <h3 class="h-subtitle" style="color:#5F2A96;">B. Concept Set Selection</h3>
+        </div>
+
+        <div class="figure section-figure">
+          <img src="./static/image/concept_set.png" alt="concept set selection">
+        </div>
+
+        <div class="content">
+          Appropriate concept coverage is critical: if a neuron’s behavior is not representable by the concept set, reliable annotation is impossible. We therefore construct three cholecystectomy-related concept sets and compare them empirically.
+        </div>
+
+        <div class="content">
+          <h4 class="h-minor" style="color:#5F2A96;">Ablation Study: Concept Sets</h4>
+        </div>
+
+        <div class="figure section-figure">
+          <img src="./static/image/table1.png" alt="concept set ablation">
+        </div>
+
+        <div class="content">
+          <h3 class="h-subtitle" style="color:#4B8BAF;">C. Neuron–Concept Association</h3>
+        </div>
+
+        <div class="figure section-figure">
+          <img src="./static/image/neuron-concept-association.png" alt="neuron–concept association">
+        </div>
+
+        <div class="content">
+          Using the selected sequences and concept set, we compute cosine similarity in a surgical VLM space (e.g., SurgVLP, PeskaVLP) between each neuron’s representative sequence and each concept text, and assign to each neuron the concepts with highest similarity.
+        </div>
+      </div>
+    </div>
+    
+    <hr class="section-divider">
+    <div class="columns is-centered mt-6">
+      <div class="column is-12-tablet is-10-desktop">
+        <h1 class="h-title step-title">SurgX STEP 2. Model's Prediction Explanation</h1>
+
+        <div class="figure section-figure">
+          <img src="./static/image/models-prediction-explanation.png" alt="models prediction explanation">
+        </div>
+
+        <div class="content">
+          The pipeline for annotating concepts to neurons proceeds in three stages:
+          <ol>
             <li><strong>A. Neuron Representative Sequence Selection</strong> – Select representative activation sequences for each neuron.</li>
             <li><strong>B. Concept Set Selection</strong> – Choose among three concept sets; <em>ChoLec-270</em> performs best in our study.</li>
             <li><strong>C. Neuron–Concept Association</strong> – Match neuron sequences with concepts via similarity in a surgical VLM space.</li>
@@ -471,3 +552,6 @@ hr.section-divider {
     </div>
   </div>
 </section>
+
+
+
