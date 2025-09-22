@@ -492,7 +492,7 @@ hr.section-divider {
         </div>
         <div class="content">
           <h4 class="h-subtitle">Qualitative Results – Explanation Examples</h4>
-          <!-- === Video Player Block === -->
+          <!-- === Video Player Block (0.2s-step scrub) === -->
 <div id="surgx-mp4-player" class="box" style="max-width: 980px; margin: 0 auto;">
 
   <!-- Video picker toolbar -->
@@ -523,70 +523,83 @@ hr.section-divider {
       <span>Pause</span>
     </button>
 
-    <input id="surgx-mp4-progress" type="range" min="1" max="1" value="1" step="1" style="flex:1;" />
+    <!-- 0.2초 단위 스크럽 -->
+    <input id="surgx-mp4-progress" type="range" min="0" max="0" value="0" step="1" style="flex:1;" />
     <span class="tag is-light is-rounded">
-      <span id="surgx-mp4-cur">1</span>/<span id="surgx-mp4-total">1</span>
+      <span id="surgx-step-cur">0</span>/<span id="surgx-step-total">0</span>
+      <span style="margin-left:.5rem;">(<span id="surgx-time-cur">0:00</span>/<span id="surgx-time-total">0:00</span>)</span>
     </span>
-  </div>
-
-  <!-- Time display -->
-  <div class="mt-2" style="display:flex; justify-content:flex-end; gap:.5rem; font-size:.9rem; color:#666;">
-    <span><span id="surgx-time-cur">0:00</span> / <span id="surgx-time-total">0:00</span></span>
   </div>
 </div>
 
 <script>
 (function() {
   // ===== 설정 =====
-  const FPS = 2; // 프레임당 0.5초면 2
+  const STEP_SEC = 0.2; // ← 여기만 바꾸면 원하는 시간 해상도로 드래그/클릭 가능 (0.2초 단위)
 
   const video    = document.getElementById('surgx-mp4');
   const btn      = document.getElementById('surgx-mp4-toggle');
   const progress = document.getElementById('surgx-mp4-progress');
-  const curSpan  = document.getElementById('surgx-mp4-cur');
-  const totSpan  = document.getElementById('surgx-mp4-total');
+  const stepCur  = document.getElementById('surgx-step-cur');
+  const stepTot  = document.getElementById('surgx-step-total');
   const tCur     = document.getElementById('surgx-time-cur');
   const tTot     = document.getElementById('surgx-time-total');
 
-  let totalFrames = 1;
+  let totalSteps = 0;
   let rafId = null;
   let dragging = false;
   let rectCache = null;
 
   // ===== 유틸 =====
-  const fmtTime = s => {
+  const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+  const fmtTime = (s) => {
     if (!isFinite(s)) return '0:00';
-    s = Math.max(0, Math.floor(s));
+    s = Math.max(0, Math.round(s));
     const m = Math.floor(s/60), sec = s%60;
     return `${m}:${String(sec).padStart(2,'0')}`;
   };
-  const frameToTime = f => (f - 1) / FPS;
-  const curFrame = () => Math.min(totalFrames, Math.max(1, Math.round((video.currentTime||0)*FPS) + 1));
-  const setFrame = f => {
-    const clamped = Math.max(1, Math.min(totalFrames, f|0));
-    const t = frameToTime(clamped);
-    video.currentTime = t;
-    progress.value = clamped;
-    curSpan.textContent = String(clamped);
-    tCur.textContent = fmtTime(t);
-  };
-  const posToFrame = (clientX) => {
+  const timeToStep = (t) => Math.round(t / STEP_SEC);              // 0-based step index
+  const stepToTime = (step) => step * STEP_SEC;                     // seconds
+  const posToStep  = (clientX) => {
     const rect = rectCache || progress.getBoundingClientRect();
     rectCache = rect;
-    const x = (clientX - rect.left) / rect.width; // 0~1
-    return Math.round(Math.max(0, Math.min(1, x)) * (totalFrames - 1)) + 1;
+    const x = clamp((clientX - rect.left) / rect.width, 0, 1);
+    return Math.round(x * totalSteps);
   };
+
+  function updateSliderFromTime(t) {
+    const s = clamp(timeToStep(t), 0, totalSteps);
+    progress.value = s;
+    stepCur.textContent = String(s);
+    tCur.textContent = fmtTime(t);
+  }
+
+  function setTimeByStep(step, keepPlaying = true) {
+    const s = clamp(step, 0, totalSteps);
+    const t = stepToTime(s);
+    video.currentTime = t;
+    progress.value = s;
+    stepCur.textContent = String(s);
+    tCur.textContent = fmtTime(t);
+    if (!keepPlaying && !video.paused) {
+      // 요청: 클릭/드래그해도 pause 안 함 → 아무 것도 안 함
+    }
+  }
 
   // ===== 메타데이터 로드 =====
   video.addEventListener('loadedmetadata', () => {
     const duration = video.duration || 0;
-    totalFrames = Math.max(1, Math.round(duration * FPS));
-    progress.max = totalFrames;
+    totalSteps = Math.max(0, Math.round(duration / STEP_SEC));
+    progress.min = 0;
+    progress.max = totalSteps;
     progress.step = 1;
-    progress.value = 1;
-    curSpan.textContent = '1';
-    totSpan.textContent = String(totalFrames);
+    progress.value = 0;
+
+    stepCur.textContent = '0';
+    stepTot.textContent = String(totalSteps);
+    tCur.textContent = fmtTime(0);
     tTot.textContent = fmtTime(duration);
+
     video.play().catch(() => {
       btn.innerHTML = '<span class="icon"><i class="fas fa-play"></i></span><span>Play</span>';
     });
@@ -604,61 +617,60 @@ hr.section-divider {
   });
   video.addEventListener('ended', () => {
     if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
-    setFrame(totalFrames);
+    setTimeByStep(totalSteps, true);
     btn.innerHTML = '<span class="icon"><i class="fas fa-play"></i></span><span>Play</span>';
   });
   btn.addEventListener('click', () => { if (video.paused) video.play(); else video.pause(); });
 
-  // ===== 진행바 동기화 =====
+  // ===== 진행바 갱신 루프 =====
   function tick() {
-    const duration = video.duration || 0;
-    if (duration > 0 && !dragging) {
-      const f = curFrame();
-      progress.value = f;
-      curSpan.textContent = String(f);
+    const dur = video.duration || 0;
+    if (!dragging && dur > 0) {
+      updateSliderFromTime(video.currentTime || 0);
     }
-    tCur.textContent = fmtTime(video.currentTime || 0);
     rafId = requestAnimationFrame(tick);
   }
 
-  // ===== 진행바 드래그/클릭 (1프레임 단위, pause 안 함) =====
+  // ===== 진행바 드래그/클릭 (0.2초 단위, pause 안 함) =====
   progress.addEventListener('pointerdown', (e) => {
     dragging = true; rectCache = null;
     progress.setPointerCapture(e.pointerId);
     e.preventDefault();
-    setFrame(posToFrame(e.clientX));
+    setTimeByStep(posToStep(e.clientX), true);
   });
   progress.addEventListener('pointermove', (e) => {
     if (!dragging) return;
     e.preventDefault();
-    setFrame(posToFrame(e.clientX));
+    setTimeByStep(posToStep(e.clientX), true);
   });
   progress.addEventListener('pointerup', (e) => {
     dragging = false; rectCache = null;
     progress.releasePointerCapture(e.pointerId);
     e.preventDefault();
   });
-  progress.addEventListener('input', () => { setFrame(parseInt(progress.value, 10) || 1); });
+  // 키보드로도 0.2초 단위 이동
   progress.addEventListener('keydown', (e) => {
-    if (e.key === 'ArrowRight') { e.preventDefault(); setFrame(curFrame() + 1); }
-    if (e.key === 'ArrowLeft')  { e.preventDefault(); setFrame(curFrame() - 1); }
+    if (e.key === 'ArrowRight') { e.preventDefault(); setTimeByStep(Number(progress.value) + 1, true); }
+    if (e.key === 'ArrowLeft')  { e.preventDefault(); setTimeByStep(Number(progress.value) - 1, true); }
   });
+  // 접근성: 입력값 직접 변경 시
+  progress.addEventListener('input', () => { setTimeByStep(Number(progress.value) || 0, true); });
 
   // ===== 비디오 선택 버튼 =====
   const BASE_PATH = './static/video/';
   const pickerBtns = document.querySelectorAll('.surgx-pick');
-  function markActive(btn) {
+  function markActive(btnEl) {
     pickerBtns.forEach(b => b.classList.remove('is-link'));
     pickerBtns.forEach(b => b.classList.add('is-light'));
-    btn.classList.remove('is-light');
-    btn.classList.add('is-link');
+    btnEl.classList.remove('is-light');
+    btnEl.classList.add('is-link');
   }
   function resetUIBeforeLoad() {
     if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
     progress.disabled = true;
-    progress.value = 1;
-    curSpan.textContent = '1';
-    totSpan.textContent = '…';
+    progress.value = 0;
+    stepCur.textContent = '0';
+    stepTot.textContent = '0';
     tCur.textContent = '0:00';
     tTot.textContent = '0:00';
   }
@@ -684,7 +696,6 @@ hr.section-divider {
     if (defBtn) { markActive(defBtn); loadVideoByName('video41', true); }
   }
   video.addEventListener('loadedmetadata', () => { progress.disabled = false; });
-
 })();
 </script>
 
