@@ -401,8 +401,10 @@ hr.section-divider {
         <div class="content">
           The pipeline for annotating concepts to neurons proceeds in three stages:
           <ol>
-            strong>A. Neuron Representative Sequence Selection</strong> – Select representative activation sequences for each neuron.
+            <strong>A. Neuron Representative Sequence Selection</strong> – Select representative activation sequences for each neuron.
+            <br>
             <strong>B. Concept Set Selection</strong> – Choose among three concept sets; <em>ChoLec-270</em> performs best in our study.
+            <br>
             <strong>C. Neuron–Concept Association</strong> – Match neuron sequences with concepts via similarity in a surgical VLM space.
           </ol>
           Details of each stage are provided below.
