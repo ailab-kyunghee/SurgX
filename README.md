@@ -7,11 +7,14 @@ This repository contains the official implementation of the SurgX paper (MICCAI 
 
 ---
 
-## Clone
+## Installation
+
+Create a new conda environment and install all dependencies:
 
 ```bash
-git clone https://github.com/ailab-kyunghee/SurgX.git
-cd SurgX
+conda create -n SurgX --python=3.8
+conda activate SurgX
+pip install -r requirements.txt
 ```
 
 ---
@@ -30,7 +33,7 @@ There are four options for `--action`:
 python main.py --action [train|extract_activations|predict|extract_contributions]
 ```
 
-1. **Train:**
+1. **Train the model:**
 
 ```bash
 python main.py --action train
@@ -42,7 +45,7 @@ python main.py --action train
 python main.py --action extract_activations
 ```
 
-3. **Run the annotation pipeline:**
+3. **Run the neuron–concept annotation pipeline:**
 
 ```bash
 cd ../../
@@ -99,7 +102,7 @@ python 7_make_mp4.py
 
 ## Concept Sets
 
-Concept sets are under the `concept_sets/` folder:
+Concept sets are located under the `concept_sets/` folder:
 
 1. `CholecT45-W`
 2. `CholecT45-S`
