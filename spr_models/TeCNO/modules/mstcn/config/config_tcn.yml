@@ -1,0 +1,22 @@
+module : mstcn.tecno.TeCNO
+model : mstcn.MultiStageModel
+dataset : cholec80.Cholec80
+out_features : 7
+num_workers : 3
+batch_size : 1
+features_per_seconds : 1
+features_subsampling : 1
+log_every_n_steps : 1
+mstcn_causal_conv : True
+learning_rate : 0.00007
+min_epochs : 12
+max_epochs : 40
+mstcn_layers : 9
+mstcn_f_maps : 32
+mstcn_f_dim: 2048
+mstcn_stages : 2
+early_stopping_metric : val_acc
+save_top_k : 1
+gpus : ['0']
+data_root : /data/kayoung/repos/projects/SurgX/spr_models/surgical_phase_recognition_models/TeCNO/logs/250822-183847_FeatureExtraction_Cholec80FeatureExtract_cnn_TwoHeadResNet50Model/cholec80_pickle_export
+num_sanity_val_steps: 4

@@ -13,7 +13,7 @@ from PIL import Image, ImageDraw, ImageFont
 CONTRIB_PKL = Path("spr_models/ASFormer/ASFormer_test_contributions.pkl")
 IMAGE_ROOT  = Path("/data2/local_datasets/cholec80/cholec_split_360x640_1fps")
 NEURON_JSON = Path("extracted_neuron_concepts/ASFormer/4_Video_wise_Top1_and_ChoLec-270.json")
-OUT_ROOT    = Path("explanation")   # 결과 저장 루트
+OUT_ROOT    = Path("/data2/local_datasets/kayoung_data/explanation")   # 결과 저장 루트
 
 IMAGE_EXT   = ".png"
 VIDEO_NUMBER_START = 41
@@ -71,6 +71,47 @@ TOP_CONCEPTS = 5
 MAX_FRAMES_PER_VIDEO: Optional[int] = None
 # ==================
 
+# 파일 상단 쪽 어딘가에 (import 근처)
+from concurrent.futures import ProcessPoolExecutor, as_completed
+
+# 병렬 워커 수 (원하는 값으로 조정)
+N_WORKERS = max(1, (os.cpu_count() or 4) - 1)
+
+def _worker_render_one_video(
+    vid_i: int,
+    contribs: torch.Tensor,
+    preds: torch.Tensor,
+    gts: torch.Tensor,
+    neuron_map: Dict[int, Dict[str, Any]],
+    image_root: Path,
+    out_root: Path,
+    image_ext: str,
+):
+    """
+    워커 프로세스에서 비디오 하나를 렌더링.
+    큰 텐서를 피클로 넘기기 때문에, OS에 따라 복사가 비용일 수 있음.
+    그래도 비디오 단위로 분리되어 있어 보통 충분히 빨라집니다.
+    """
+    try:
+        # CPU 경합 줄이기 (워커가 너무 많은 스레드를 쓰지 않도록)
+        try:
+            torch.set_num_threads(1)
+        except Exception:
+            pass
+
+        visualize_video(
+            video_idx=vid_i,
+            contribs=contribs,
+            preds=preds,
+            gts=gts,
+            neuron_map=neuron_map,
+            image_root=image_root,
+            out_root=out_root,
+            image_ext=image_ext,
+        )
+        return (vid_i, True, "")
+    except Exception as e:
+        return (vid_i, False, str(e))
 
 def _textsize(draw: ImageDraw.ImageDraw, text: str, font: ImageFont.FreeTypeFont):
     left, top, right, bottom = draw.textbbox((0, 0), text, font=font)
@@ -181,6 +222,7 @@ def open_image_or_blank(path: Path, size_like: Optional[Image.Image]) -> Image.I
     if size_like is not None:
         return Image.new("RGB", size_like.size, (30, 30, 30))
     return Image.new("RGB", (640, 360), (30, 30, 30))
+
 def visualize_video(
     video_idx: int,
     contribs: torch.Tensor,  # (T, 64, C)
@@ -244,16 +286,30 @@ def visualize_video(
 
         title_line = f"{video_name}  ·  t={t}  ·  {video_name}_{base_num:06d}{image_ext}"
         title_h = _textsize(td, title_line, font_title)[1]
-        info_lines = [
-            f"Predicted: {format_phase(pred_c)}    |    GT: {format_phase(gt_c)}",
-            # f"Threshold (0.9 × max): {thr:.6f}    ·    max contrib: {max_val:.6f}",
+        # -------- Info --------
+        if pred_c == gt_c:
+            pred_fill = (0, 180, 0)   # 초록색
+            gt_fill   = (0, 180, 0)
+            font_info = font_header   # 굵은 폰트
+        else:
+            pred_fill = (200, 0, 0)   # 빨간색
+            gt_fill   = (200, 0, 0)
+            font_info = font_header   # 굵은 폰트
+
+        info_pairs = [
+            (f"Predicted: {format_phase(pred_c)}", pred_fill, font_info),
+            (f"GT: {format_phase(gt_c)}", gt_fill, font_info),
         ]
 
+        # 높이 계산
         info_h = 0
-        for line in info_lines:
-            for wl in _wrap_text_by_width(td, line, font_concept, max_text_w):
-                info_h += _textsize(td, wl, font_concept)[1] + LINE_GAP
-        if info_h: info_h -= LINE_GAP
+        for text, fill, font_used in info_pairs:
+            wrapped = _wrap_text_by_width(td, text, font_used, max_text_w)
+            for wl in wrapped:
+                info_h += _textsize(td, wl, font_used)[1] + LINE_GAP
+        if info_h: 
+            info_h -= LINE_GAP
+
 
         neuron_h = 0
         measured_neurons: List[Dict[str, Any]] = []
@@ -297,9 +353,9 @@ def visualize_video(
         if neuron_h: neuron_h -= SECTION_GAP
 
         # 패널 높이 = 이미지 높이(고정). 내용이 더 크면 캔버스 높이를 늘림.
-        content_h = int(PANEL_INNER_PAD + title_h + SECTION_GAP +
-                     info_h + SECTION_GAP + neuron_h*1.5 + PANEL_INNER_PAD)
-        canvas_h = max(tile_h, content_h)  # 사이드 패널을 이미지 높이 이상으로
+        content_h = (PANEL_INNER_PAD + title_h + SECTION_GAP +
+                     info_h + SECTION_GAP + neuron_h + PANEL_INNER_PAD)
+        canvas_h = max(tile_h+700, content_h)  # 사이드 패널을 이미지 높이 이상으로
         canvas = Image.new("RGBA", (canvas_w, canvas_h), canvas_bg_rgba)
 
         # ---- 왼쪽: 이미지 ----
@@ -324,11 +380,14 @@ def visualize_video(
         cur_y += title_h + SECTION_GAP
 
         # Info
-        for line in info_lines:
-            for wl in _wrap_text_by_width(draw, line, font_concept, max_text_w):
-                draw.text((cur_x, cur_y), wl, font=font_concept, fill=TEXT_SECONDARY)
-                cur_y += _textsize(draw, wl, font_concept)[1] + LINE_GAP
+        # Info
+        for text, fill, font_used in info_pairs:
+            wrapped = _wrap_text_by_width(draw, text, font_used, max_text_w)
+            for wl in wrapped:
+                draw.text((cur_x, cur_y), wl, font=font_used, fill=fill)
+                cur_y += _textsize(draw, wl, font_used)[1] + LINE_GAP
         cur_y += SECTION_GAP
+
 
         # Neurons
         for block in measured_neurons:
@@ -363,6 +422,8 @@ def main():
     contrib_data = load_contributions(CONTRIB_PKL)
     neuron_map = load_neuron_json(NEURON_JSON)
 
+    # 처리할 작업 리스트 구성 (비디오 단위)
+    tasks = []
     for vid_i, trio in enumerate(contrib_data):
         if not isinstance(trio, (list, tuple)) or len(trio) != 3:
             print(f"[WARN] Unexpected item at index {vid_i}, skipping.")
@@ -379,19 +440,46 @@ def main():
             print(f"[WARN] gts invalid for video index {vid_i}, skipping.")
             continue
 
-        visualize_video(
-            video_idx=vid_i,
-            contribs=contribs,
-            preds=preds,
-            gts=gts,
-            neuron_map=neuron_map,
-            image_root=IMAGE_ROOT,
-            out_root=OUT_ROOT,
-            image_ext=IMAGE_EXT,
-        )
+        tasks.append((vid_i, contribs, preds, gts))
+
+    if not tasks:
+        print("No valid videos to process.")
+        return
+
+    print(f"🚀 Parallel rendering: {len(tasks)} videos with {N_WORKERS} workers")
+
+    # 병렬 실행
+    futures = []
+    with ProcessPoolExecutor(max_workers=N_WORKERS, mp_context=None) as ex:
+        for (vid_i, contribs, preds, gts) in tasks:
+            fut = ex.submit(
+                _worker_render_one_video,
+                vid_i, contribs, preds, gts,
+                neuron_map,
+                IMAGE_ROOT,
+                OUT_ROOT,
+                IMAGE_EXT,
+            )
+            futures.append(fut)
+
+        # 완료/에러 모니터링
+        done_cnt = 0
+        for fut in as_completed(futures):
+            vid_i, ok, msg = fut.result()
+            done_cnt += 1
+            if ok:
+                print(f"[{done_cnt}/{len(tasks)}] video index {vid_i} ✓")
+            else:
+                print(f"[{done_cnt}/{len(tasks)}] video index {vid_i} ✗ ERROR: {msg}")
 
     print("✅ Done. Results saved under:", OUT_ROOT.resolve())
 
 
 if __name__ == "__main__":
+    # 맥/윈도우 호환성 (특히 macOS에서 fork 이슈 방지)
+    try:
+        import multiprocessing as mp
+        mp.set_start_method("spawn", force=True)
+    except Exception:
+        pass
     main()

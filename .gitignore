@@ -1,3 +1,8 @@
-explanation
+explanation*
 visual*
 Pretendard*
+spr_models/ASFormer/models*
+spr_models/ASFormer/results
+spr_models/ASFormer/ASFormer_test_contributions.pkl
+spr_models/ASFormer/ASFormer_train_activations.pkl
+spr_models/TeCNO/wandb
