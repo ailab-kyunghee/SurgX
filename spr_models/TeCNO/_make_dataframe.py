@@ -5,7 +5,7 @@ import pandas as pd
 import numpy as np
 from tqdm import tqdm
 
-# --------- 경로 설정 ---------
+# --------- Path settings ---------
 ROOT        = Path("/data2/local_datasets/cholec80")
 KAYOUNG_ROOT= Path("/data2/local_datasets/cholec80_kayoung")
 IMG_ROOT    = ROOT / "extracted_images"
@@ -14,7 +14,7 @@ TOOL_ROOT   = ROOT / "tool_annotations"
 OUT_PKL     = KAYOUNG_ROOT / "dataframes/cholec_split_250px_25fps.pkl"
 OUT_PKL.parent.mkdir(parents=True, exist_ok=True)
 
-# --------- 라벨/컬럼 맵 ---------
+# --------- Label/column maps ---------
 PHASE2ID = {
     "Preparation": 0,
     "CalotTriangleDissection": 1,
@@ -35,7 +35,7 @@ TOOL_COL_MAP = {
 }
 TOOL_COLS = list(TOOL_COL_MAP.values())
 
-# --------- 파일명 파싱 ---------
+# --------- Filename parsing ---------
 IMG_NAME_RE = re.compile(r".*?_(\d+)\.png$", re.IGNORECASE)   # videoNN_MMMMMM.png -> MMMMMM
 VID_NAME_RE = re.compile(r"video\s*0*([0-9]+)$", re.IGNORECASE)  # videoNN -> NN
 
@@ -47,12 +47,12 @@ def parse_video_idx(dirname: str) -> int:
 
 def list_video_dirs(img_root: Path):
     dirs = [d for d in img_root.iterdir() if d.is_dir()]
-    # 숫자 기준 정렬
+    # sort numerically
     dirs = [d for d in dirs if VID_NAME_RE.search(d.name)]
     return sorted(dirs, key=lambda d: parse_video_idx(d.name))
 
 def list_images_with_frames(video_dir: Path):
-    """해당 비디오 폴더 내 PNG를 프레임 인덱스와 함께 정렬해서 반환"""
+    """Return PNGs in the video folder, sorted and paired with frame indices."""
     imgs = sorted(p for p in video_dir.glob("*.png"))
     rows = []
     for p in imgs:
@@ -63,9 +63,9 @@ def list_images_with_frames(video_dir: Path):
         rows.append((p, frame))
     return rows
 
-# --------- 라벨 파일 파서 ---------
+# --------- Label file parsers ---------
 def read_phase_file(phase_path: Path) -> pd.DataFrame:
-    # 예:
+    # Example:
     # Frame   Phase
     # 0       Preparation
     df = pd.read_csv(phase_path, sep=r"\s+|\t", engine="python")
@@ -76,26 +76,26 @@ def read_phase_file(phase_path: Path) -> pd.DataFrame:
     return df
 
 def read_tool_file(tool_path: Path) -> pd.DataFrame:
-    # 예:
+    # Example:
     # Frame   Grasper Bipolar Hook Scissors Clipper Irrigator SpecimenBag
     df = pd.read_csv(tool_path, sep=r"\s+|\t", engine="python")
     df.columns = [c.strip() for c in df.columns]
-    # 표준 컬럼명으로 변경
+    # rename to standard column names
     rename = {src: dst for src, dst in TOOL_COL_MAP.items() if src in df.columns}
     df = df.rename(columns=rename)
-    # 누락된 툴 컬럼은 0으로 생성
+    # create missing tool columns with 0
     for col in TOOL_COLS:
         if col not in df.columns:
             df[col] = 0
     df = df[["Frame"] + TOOL_COLS].copy()
     return df
 
-# --------- 비디오 단위 DF 생성 ---------
+# --------- Build per-video DataFrame ---------
 def build_df_for_video(video_dir: Path, img_root: Path, phase_root: Path, tool_root: Path) -> pd.DataFrame:
     vid_name  = video_dir.name
     video_idx = parse_video_idx(vid_name)
 
-    # 이미지 목록
+    # image list
     img_list = list_images_with_frames(video_dir)
     if not img_list:
         return pd.DataFrame()
@@ -125,12 +125,12 @@ def build_df_for_video(video_dir: Path, img_root: Path, phase_root: Path, tool_r
             phase_df.set_index("Frame")["class"]
                     .sort_index()
                     .reindex(out["index"])
-                    .ffill()     # 이전 라벨로 채우기
-                    .bfill()     # 시작부 결손은 뒤 라벨로
+                    .ffill()     # fill with previous label
+                    .bfill()     # for leading gaps, use next label
         )
         out["class"] = s.astype(int).values
     else:
-        out["class"] = 0  # 없으면 전부 Preparation(0) 처리
+        out["class"] = 0  # if missing, treat all as Preparation(0)
 
     # ----- TOOL -----
     tool_candidates = [
@@ -149,8 +149,8 @@ def build_df_for_video(video_dir: Path, img_root: Path, phase_root: Path, tool_r
             tool_df.set_index("Frame")
                    .sort_index()
                    .reindex(out["index"])
-                   .ffill()    # 이전 값 전파
-                   .fillna(0)  # 시작부 결손 0
+                   .ffill()    # forward fill
+                   .fillna(0)  # leading gaps to 0
         )
         tdf = tdf.astype(int).reset_index(drop=True)
         for col in TOOL_COLS:
@@ -159,10 +159,10 @@ def build_df_for_video(video_dir: Path, img_root: Path, phase_root: Path, tool_r
         for col in TOOL_COLS:
             out[col] = 0
 
-    # 정렬/인덱스 정리
+    # sort/reset index
     out = out.sort_values(["video_idx", "index"]).reset_index(drop=True)
 
-    # dtypes 보장
+    # ensure dtypes
     out["video_idx"] = out["video_idx"].astype(int)
     out["index"]     = out["index"].astype(int)
     out["class"]     = out["class"].astype(int)
@@ -171,7 +171,7 @@ def build_df_for_video(video_dir: Path, img_root: Path, phase_root: Path, tool_r
 
     return out
 
-# --------- 전체 DF 생성 ---------
+# --------- Build full DataFrame ---------
 def build_all_df(img_root: Path, phase_root: Path, tool_root: Path) -> pd.DataFrame:
     rows = []
     for vdir in tqdm(list_video_dirs(img_root), desc="Building DataFrame"):
@@ -183,11 +183,11 @@ def build_all_df(img_root: Path, phase_root: Path, tool_root: Path) -> pd.DataFr
 
     df_all = pd.concat(rows, ignore_index=True)
 
-    # 컬럼 순서(로더가 기대하는 형태와 일치)
+    # column order (match what the loader expects)
     wanted = ["video_idx", "image_path", "index", "class"] + TOOL_COLS
     df_all = df_all[wanted]
 
-    # NaN/도메인 검사 (학습 코드의 assert에 대비)
+    # NaN/domain checks (for training code asserts)
     assert df_all[wanted].isnull().sum().sum() == 0, "NaN detected in dataframe!"
     assert set(df_all["class"].unique()) <= set(range(7)), "class must be in [0..6]"
     for c in TOOL_COLS:
