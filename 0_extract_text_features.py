@@ -17,11 +17,12 @@ def ensure_dir(p: str):
 
 def load_string_list(filepath: str) -> List[str]:
     """
-    Loads a list of strings from a .json file which may contain:
-      - a JSON array (["a", "b", ...])
-      - a JSON object with a key holding the list (e.g., {"concepts": [...]}). If multiple
-        list-like values exist, the longest list is chosen.
-      - a Python list literal text (e.g., "['a', 'b']").
+    Load a list of strings from a .json file that may contain:
+      - A JSON array (e.g., ["a", "b", ...])
+      - A JSON object with a key holding the list (e.g., {"concepts": [...]}); if multiple
+        list-like values exist, the longest list is chosen
+      - A Python list literal as text (e.g., "['a', 'b']")
+      - Otherwise, fall back to one string per line
     """
     with open(filepath, "r", encoding="utf-8") as f:
         raw = f.read().strip()
@@ -32,7 +33,6 @@ def load_string_list(filepath: str) -> List[str]:
         if isinstance(obj, list) and all(isinstance(x, str) for x in obj):
             return obj
         if isinstance(obj, dict):
-            # pick the longest string-list value
             candidates = []
             for v in obj.values():
                 if isinstance(v, list) and all(isinstance(x, str) for x in v):
@@ -51,7 +51,7 @@ def load_string_list(filepath: str) -> List[str]:
     except Exception:
         pass
 
-    # 3) Fallback: one string per line (ignore empties)
+    # 3) Fallback: one string per line (ignore empty lines)
     lines = [ln.strip() for ln in raw.splitlines()]
     lines = [ln for ln in lines if ln]
     if not lines:
@@ -71,15 +71,17 @@ def extract_text_embeddings(
     batch_size: int = 512
 ) -> np.ndarray:
     """
-    Tokenize with surgvlp.tokenize and encode via model(None, tokens, mode='text').
-    Returns L2-normalized float32 embeddings of shape (N, D).
+    Tokenize with surgvlp.tokenize and encode with model(None, tokens, mode='text').
+
+    Returns:
+        L2-normalized embeddings as float32 array of shape (N, D).
     """
     all_vecs = []
     model.eval()
     with torch.no_grad():
         for chunk in batched(texts, batch_size):
-            tokens = surgvlp.tokenize(chunk, device=device)  # framework-provided tokenizer
-            out = model(None, tokens, mode='text')           # {'text_emb': (B, D)}
+            tokens = surgvlp.tokenize(chunk, device=device)
+            out = model(None, tokens, mode='text')  # {'text_emb': (B, D)}
             text_emb = out['text_emb']
             # L2 normalize
             text_emb = text_emb / text_emb.norm(dim=-1, keepdim=True).clamp(min=1e-12)
@@ -89,11 +91,15 @@ def extract_text_embeddings(
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Extract PeskaVLP text features from concept sets")
-    parser.add_argument("--config", type=str, default="SurgVLP/tests/config_peskavlp.py", help="dataset/model config file")
-    parser.add_argument("--concept_dir", type=str, default="./concept_sets", help="directory containing *.json")
-    parser.add_argument("--out_dir", type=str, default="./extracted_features/text", help="output directory for .pkl")
-    parser.add_argument("--batch_size", type=int, default=512, help="batch size for tokenization/encoding")
+    parser = argparse.ArgumentParser(description="Extract PeskaVLP text features from concept sets.")
+    parser.add_argument("--config", type=str, default="SurgVLP/tests/config_peskavlp.py",
+                        help="Dataset/model config file path.")
+    parser.add_argument("--concept_dir", type=str, default="./concept_sets",
+                        help="Directory containing input *.json files.")
+    parser.add_argument("--out_dir", type=str, default="./extracted_features/text",
+                        help="Output directory for .pkl files.")
+    parser.add_argument("--batch_size", type=int, default=512,
+                        help="Batch size for tokenization/encoding.")
     args = parser.parse_args()
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -128,7 +134,7 @@ def main():
 
             payload = {
                 "concepts": concepts,
-                "embeddings": emb,                 # shape: (N, D), float32, L2-normalized
+                "embeddings": emb,                 # (N, D), float32, L2-normalized
                 "emb_dim": int(emb.shape[1]),
                 "model_config": str(configs.model_config),
             }
