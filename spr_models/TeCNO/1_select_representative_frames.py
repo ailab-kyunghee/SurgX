@@ -3,7 +3,7 @@ import pickle
 import os
 
 # -------------------------
-# 결과 저장 폴더 만들기
+# Create output folder
 # -------------------------
 SAVE_DIR = "representative_frames"
 os.makedirs(SAVE_DIR, exist_ok=True)
@@ -11,10 +11,10 @@ os.makedirs(SAVE_DIR, exist_ok=True)
 with open("./TeCNO_train_activations.pkl", "rb") as f:
     activations = pickle.load(f)
 
-num_neurons = activations[0].shape[1]  # 모든 비디오 동일한 뉴런 수라고 가정
+num_neurons = activations[0].shape[1]  # assume the same number of neurons for all videos
 
 # -------------------------
-# 1. 뉴런마다 min,max → threshold 기준
+# 1) Per neuron: global min/max → threshold-based selection
 # -------------------------
 results1 = {}
 for neuron_idx in range(num_neurons):
@@ -32,7 +32,7 @@ for neuron_idx in range(num_neurons):
     results1[neuron_idx] = {"max": max_val, "min": min_val, "thr": thr, "frames": above}
 
 # -------------------------
-# 2. 뉴런마다 전체 프레임 중 top40
+# 2) Per neuron: global Top-40 frames
 # -------------------------
 results2 = {}
 for neuron_idx in range(num_neurons):
@@ -43,9 +43,9 @@ for neuron_idx in range(num_neurons):
             all_values.append((video_idx, frame_idx, val.item()))
     top40 = sorted(all_values, key=lambda x: x[2], reverse=True)[:40]
     results2[neuron_idx] = top40
-    
+
 # -------------------------
-# 3. 뉴런&비디오마다 min,max → threshold 기준
+# 3) Per neuron & per video: min/max → threshold-based selection
 # -------------------------
 results3 = {}
 for neuron_idx in range(num_neurons):
@@ -60,7 +60,7 @@ for neuron_idx in range(num_neurons):
         results3[neuron_idx][video_idx] = {"max": max_val, "min": min_val, "thr": thr, "frames": above}
 
 # -------------------------
-# 4. 뉴런&비디오마다 top1
+# 4) Per neuron & per video: Top-1 frame
 # -------------------------
 results4 = {}
 for neuron_idx in range(num_neurons):
@@ -71,21 +71,21 @@ for neuron_idx in range(num_neurons):
         results4[neuron_idx][video_idx] = (video_idx, frame_idx.item(), max_val.item())
 
 # -------------------------
-# TXT 저장
+# Save TXT
 # -------------------------
 with open(os.path.join(SAVE_DIR, "1_Global_Threshold_0.1.txt"), "w") as f:
     for n, info in results1.items():
         f.write(f"Neuron {n} → max={info['max']:.4f}, min={info['min']:.4f}, thr={info['thr']:.4f}\n")
         for v, fr, val in info["frames"]:
             f.write(f"   Video {v}, Frame {fr}, Value {val:.4f}\n")
-        f.write("-"*50 + "\n")
+        f.write("-" * 50 + "\n")
 
 with open(os.path.join(SAVE_DIR, "2_Global_Top40.txt"), "w") as f:
     for n, frames in results2.items():
         f.write(f"Neuron {n} → Top40 frames\n")
         for v, fr, val in frames:
             f.write(f"   Video {v}, Frame {fr}, Value {val:.4f}\n")
-        f.write("-"*50 + "\n")
+        f.write("-" * 50 + "\n")
 
 with open(os.path.join(SAVE_DIR, "3_Video_wise_Threshold_0.01.txt"), "w") as f:
     for n, vids in results3.items():
@@ -94,7 +94,7 @@ with open(os.path.join(SAVE_DIR, "3_Video_wise_Threshold_0.01.txt"), "w") as f:
             f.write(f"  Video {v} → max={info['max']:.4f}, min={info['min']:.4f}, thr={info['thr']:.4f}\n")
             for vv, fr, val in info["frames"]:
                 f.write(f"     Frame {fr}, Value {val:.4f}\n")
-        f.write("-"*50 + "\n")
+        f.write("-" * 50 + "\n")
 
 with open(os.path.join(SAVE_DIR, "4_Video_wise_Top1.txt"), "w") as f:
     for n, vids in results4.items():
@@ -102,12 +102,12 @@ with open(os.path.join(SAVE_DIR, "4_Video_wise_Top1.txt"), "w") as f:
         for v, tup in vids.items():
             vid, fr, val = tup
             f.write(f"  Video {vid} → Frame {fr}, Value {val:.4f}\n")
-        f.write("-"*50 + "\n")
+        f.write("-" * 50 + "\n")
 
-print("✅ 네 가지 결과 TXT 저장 완료")
+print("Saved four TXT result files.")
 
 # -------------------------
-# PKL 저장 (뉴런별 리스트 형식)
+# Save PKL (list per neuron)
 # -------------------------
 pkl1 = [[(v, f, val) for v, f, val in info["frames"]] for _, info in results1.items()]
 with open(os.path.join(SAVE_DIR, "1_Global_Threshold_0.1.pkl"), "wb") as f:
@@ -135,4 +135,4 @@ for _, vids in results4.items():
 with open(os.path.join(SAVE_DIR, "4_Video_wise_Top1.pkl"), "wb") as f:
     pickle.dump(pkl4, f)
 
-print(f"✅ 네 가지 결과 TXT/PKL 모두 '{SAVE_DIR}' 폴더에 저장 완료")
+print(f"All TXT/PKL results saved under '{SAVE_DIR}'.")
