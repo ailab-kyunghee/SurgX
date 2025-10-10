@@ -8,74 +8,70 @@ from typing import Dict, Any, List, Optional
 
 import torch
 from PIL import Image, ImageDraw, ImageFont
+from concurrent.futures import ProcessPoolExecutor, as_completed  # parallel workers
 
-# ====== 설정 ======
+# ====== Settings ======
 CONTRIB_PKL = Path("spr_models/ASFormer/ASFormer_test_contributions.pkl")
 IMAGE_ROOT  = Path("/data2/local_datasets/cholec80/cholec_split_360x640_1fps")
 NEURON_JSON = Path("extracted_neuron_concepts/ASFormer/4_Video_wise_Top1_and_ChoLec-270.json")
-OUT_ROOT    = Path("/data2/local_datasets/kayoung_data/explanation")   # 결과 저장 루트
+OUT_ROOT    = Path("/data2/local_datasets/kayoung_data/explanation")   # output root
 
 IMAGE_EXT   = ".png"
 VIDEO_NUMBER_START = 41
 
-# ====== 스타일 ======
-PANEL_BG = (25, 25, 28, 210)  # 반투명 다크 패널
-CANVAS_BG = (8, 8, 10)        # 전체 배경
+# ====== Styles ======
+PANEL_BG = (25, 25, 28, 210)  # translucent dark panel
+CANVAS_BG = (8, 8, 10)        # overall background
 TEXT_PRIMARY = (245, 245, 245)
 TEXT_SECONDARY = (205, 205, 210)
 ACCENT = (160, 160, 255)
 
 PADDING = 16
 GRID_ROWS, GRID_COLS = 1, 1
-TILE_MARGIN = 0  # 1장만 쓰니 의미 없음
+TILE_MARGIN = 0  # not used (single image)
 TITLE_SIZE = 22
 HEADER_SIZE = 20
 BODY_SIZE = 18
-CONCEPT_SIZE = 16      # ← 컨셉 전용 폰트 크기 (원하는 만큼 키우세요)
+CONCEPT_SIZE = 16      # font size for concepts
 LINE_GAP = 6
 SECTION_GAP = 10
 PANEL_RADIUS = 16
 BULLET_RADIUS = 5
 PANEL_INNER_PAD = 14
-EXTRA_BOTTOM = 600  # 원하는 만큼 추가(예: 400px)
+EXTRA_BOTTOM = 600  # extra space (e.g., 400px)
 
-# 콘셉트 색 팔레트(충분히 길게; 필요시 더 추가)
+# Concept color palette (extend if needed)
 CONCEPT_PALETTE = [
     (255, 180, 180), (255, 220, 165), (255, 250, 170),
     (200, 245, 180), (175, 230, 255), (195, 190, 255),
     (245, 190, 255), (255, 205, 230), (170, 235, 210),
     (210, 210, 255), (255, 205, 180), (200, 255, 210),
 ]
+
 # ====== Cholec80 phases (0..6) ======
 PHASE_NAMES = [
-    "Preparation",               # 0 -> 1
+    "Preparation",                 # 0 -> 1
     "Calot Triangle Dissection",   # 1 -> 2
-    "Clipping and Cutting",           # 2 -> 3
-    "Gallbladder Dissection",     # 3 -> 4
-    "Gallbladder Packaging",      # 4 -> 5
-    "Cleaning Coagulation",       # 5 -> 6
-    "Gallbladder Retraction",     # 6 -> 7
+    "Clipping and Cutting",        # 2 -> 3
+    "Gallbladder Dissection",      # 3 -> 4
+    "Gallbladder Packaging",       # 4 -> 5
+    "Cleaning Coagulation",        # 5 -> 6
+    "Gallbladder Retraction",      # 6 -> 7
 ]
 
 def format_phase(c: int) -> str:
-    """0-based class idx -> 'n · PhaseName' (n = c+1). 범위를 벗어나면 숫자만 반환."""
+    """0-based class idx -> 'n · PhaseName' (n = c+1). If out of range, return the number only."""
     n = c + 1
     if 0 <= c < len(PHASE_NAMES):
         return f"{n} · {PHASE_NAMES[c]}"
     return str(n)
 
-# neuron concept 출력 개수
+# number of neuron concepts to show
 TOP_CONCEPTS = 5
 
-# 디버그용: None이면 전체 프레임
+# Debug: None means process all frames per video
 MAX_FRAMES_PER_VIDEO: Optional[int] = None
-# ==================
 
-# 파일 상단 쪽 어딘가에 (import 근처)
-from concurrent.futures import ProcessPoolExecutor, as_completed
-
-# 병렬 워커 수 (원하는 값으로 조정)
-N_WORKERS = max(1, (os.cpu_count() or 4) - 1)
 
 def _worker_render_one_video(
     vid_i: int,
@@ -88,12 +84,12 @@ def _worker_render_one_video(
     image_ext: str,
 ):
     """
-    워커 프로세스에서 비디오 하나를 렌더링.
-    큰 텐서를 피클로 넘기기 때문에, OS에 따라 복사가 비용일 수 있음.
-    그래도 비디오 단위로 분리되어 있어 보통 충분히 빨라집니다.
+    Render one video in a worker process.
+    Large tensors are passed via pickle; depending on OS this can have some overhead,
+    but splitting by video is usually fast enough.
     """
     try:
-        # CPU 경합 줄이기 (워커가 너무 많은 스레드를 쓰지 않도록)
+        # Reduce CPU contention (limit threads used by each worker)
         try:
             torch.set_num_threads(1)
         except Exception:
@@ -119,7 +115,7 @@ def _textsize(draw: ImageDraw.ImageDraw, text: str, font: ImageFont.FreeTypeFont
 
 
 def _wrap_text_by_width(draw: ImageDraw.ImageDraw, text: str, font: ImageFont.FreeTypeFont, max_width: int) -> List[str]:
-    """단어 단위로 줄바꿈하여 max_width를 넘지 않도록 줄 리스트 반환."""
+    """Word-wrap the text so that each line width does not exceed max_width."""
     words = text.split()
     if not words:
         return [""]
@@ -136,7 +132,7 @@ def _wrap_text_by_width(draw: ImageDraw.ImageDraw, text: str, font: ImageFont.Fr
 
 
 def _draw_rounded_panel(canvas: Image.Image, xy, radius: int, fill_rgba):
-    """반투명 라운드 사각형 (Pillow의 rounded_rectangle은 알파 혼합이 약해서 수동 합성)"""
+    """Draw a translucent rounded rectangle by compositing (Pillow's rounded_rectangle blends alpha weakly)."""
     from PIL import ImageDraw, Image
     x0, y0, x1, y1 = xy
     panel_w, panel_h = x1 - x0, y1 - y0
@@ -147,7 +143,7 @@ def _draw_rounded_panel(canvas: Image.Image, xy, radius: int, fill_rgba):
 
 
 def _concept_color(name: str) -> tuple:
-    """이름 -> 팔레트 색상(안정적 해시)"""
+    """Stable hash of name -> palette color."""
     idx = (hash(name) & 0xFFFFFFFF) % len(CONCEPT_PALETTE)
     return CONCEPT_PALETTE[idx]
 
@@ -157,7 +153,7 @@ def load_font():
         ("./Pretendard-Black.otf", TITLE_SIZE),
         ("./Pretendard-Medium.otf", HEADER_SIZE),
         ("./Pretendard-Regular.otf", CONCEPT_SIZE),
-        ("./Pretendard-Medium.otf", CONCEPT_SIZE),   # ← 추가: 컨셉은 Medium 24
+        ("./Pretendard-Medium.otf", CONCEPT_SIZE),   # concept font fallback
         ("./Pretendard-ExtraLight.otf", CONCEPT_SIZE),
     ]
     font_title = font_header = font_body = font_concept = ImageFont.load_default()
@@ -179,9 +175,8 @@ def load_font():
     if font_header == ImageFont.load_default():
         font_header = font_body
     if font_concept == ImageFont.load_default():
-        font_concept = font_body   # 폴백
+        font_concept = font_body   # fallback
     return font_title, font_header, font_body, font_concept
-
 
 
 def load_contributions(pkl_path: Path):
@@ -238,7 +233,7 @@ def visualize_video(
     video_name = f"video{video_num:02d}" if video_num < 100 else f"video{video_num}"
     video_dir = image_root / video_name
 
-    # 샘플 크기
+    # Sample size
     sample_num = frame_to_filename_num(0)
     sample_path = video_dir / f"{video_name}_{sample_num:06d}{image_ext}"
     sample_img = open_image_or_blank(sample_path, None).convert("RGBA")
@@ -246,7 +241,7 @@ def visualize_video(
 
     font_title, font_header, font_body, font_concept = load_font()
 
-    # 프레임 수 제한
+    # Limit frames per video if requested
     frame_range = range(T)
     if MAX_FRAMES_PER_VIDEO is not None:
         frame_range = range(min(T, MAX_FRAMES_PER_VIDEO))
@@ -254,9 +249,9 @@ def visualize_video(
     out_dir = out_root / video_name
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    # ===== 사이드 패널 레이아웃 파라미터 =====
-    PANEL_WIDTH = max(int(tile_w * 0.55), 520)     # 패널 폭(이미지 폭 대비)
-    GUTTER = 16                                     # 이미지와 패널 사이 간격
+    # ===== Side panel layout parameters =====
+    PANEL_WIDTH = max(int(tile_w * 0.55), 520)  # panel width relative to image
+    GUTTER = 16                                  # gap between image and panel
     canvas_w = tile_w + GUTTER + PANEL_WIDTH
     canvas_bg_rgba = CANVAS_BG + (255,)
 
@@ -267,7 +262,7 @@ def visualize_video(
         if img.size != (tile_w, tile_h):
             img = img.resize((tile_w, tile_h), Image.BILINEAR)
 
-        # -------- 데이터 준비 --------
+        # -------- Prepare data --------
         pred_c = int(preds[t].item())
         gt_c = int(gts[t].item())
         contrib_vec = contribs[t, :, pred_c]  # (64,)
@@ -279,38 +274,39 @@ def visualize_video(
             cand_idx = [int(torch.argmax(contrib_vec).item())]
         cand_idx = sorted(cand_idx, key=lambda i: float(contrib_vec[i].item()), reverse=True)
 
-        # -------- 패널 내용 줄바꿈/높이 계산 --------
+        # -------- Measure wrapped text height --------
         tmp = Image.new("RGBA", (10, 10))
         td = ImageDraw.Draw(tmp)
         max_text_w = PANEL_WIDTH - 2 * (PADDING + PANEL_INNER_PAD)
 
         title_line = f"{video_name}  ·  t={t}  ·  {video_name}_{base_num:06d}{image_ext}"
         title_h = _textsize(td, title_line, font_title)[1]
+
         # -------- Info --------
         if pred_c == gt_c:
-            pred_fill = (0, 180, 0)   # 초록색
+            pred_fill = (0, 180, 0)   # green
             gt_fill   = (0, 180, 0)
-            font_info = font_header   # 굵은 폰트
+            font_info = font_header   # bold-ish font
         else:
-            pred_fill = (200, 0, 0)   # 빨간색
+            pred_fill = (200, 0, 0)   # red
             gt_fill   = (200, 0, 0)
-            font_info = font_header   # 굵은 폰트
+            font_info = font_header
 
         info_pairs = [
             (f"Predicted: {format_phase(pred_c)}", pred_fill, font_info),
             (f"GT: {format_phase(gt_c)}", gt_fill, font_info),
         ]
 
-        # 높이 계산
+        # Height of info block
         info_h = 0
         for text, fill, font_used in info_pairs:
             wrapped = _wrap_text_by_width(td, text, font_used, max_text_w)
             for wl in wrapped:
                 info_h += _textsize(td, wl, font_used)[1] + LINE_GAP
-        if info_h: 
+        if info_h:
             info_h -= LINE_GAP
 
-
+        # Neuron blocks height
         neuron_h = 0
         measured_neurons: List[Dict[str, Any]] = []
         for ni in cand_idx:
@@ -327,7 +323,7 @@ def visualize_video(
             else:
                 concepts = [("(No concept metadata found)", None)]
 
-            # 줄바꿈된 콘셉트 라인 높이 측정
+            # Measure wrapped concept lines
             concept_wrapped: List[List[str]] = []
             concept_names_for_color: List[str] = []
             ch_h = 0
@@ -350,36 +346,40 @@ def visualize_video(
                 "concept_wrapped": concept_wrapped,
                 "concept_names_for_color": concept_names_for_color,
             })
-        if neuron_h: neuron_h -= SECTION_GAP
+        if neuron_h:
+            neuron_h -= SECTION_GAP
 
-        # 패널 높이 = 이미지 높이(고정). 내용이 더 크면 캔버스 높이를 늘림.
+        # Panel height equals image height by default; if content is larger, extend canvas height
         content_h = (PANEL_INNER_PAD + title_h + SECTION_GAP +
                      info_h + SECTION_GAP + neuron_h + PANEL_INNER_PAD)
-        canvas_h = max(tile_h+700, content_h)  # 사이드 패널을 이미지 높이 이상으로
+        canvas_h = max(tile_h + 700, content_h)  # ensure panel area is at least image height
         canvas = Image.new("RGBA", (canvas_w, canvas_h), canvas_bg_rgba)
 
-        # ---- 왼쪽: 이미지 ----
-        # 세로 가운데 정렬
+        # ---- Left: image ----
+        # vertically center the image
         img_y = (canvas_h - tile_h) // 2
         canvas.alpha_composite(img, (0, img_y))
 
-        # ---- 오른쪽: 패널 ----
+        # ---- Right: panel ----
         panel_x0 = tile_w + GUTTER
         panel_y0 = 0
         panel_x1 = panel_x0 + PANEL_WIDTH
         panel_y1 = canvas_h
-        _draw_rounded_panel(canvas, (panel_x0 + PADDING, panel_y0 + PADDING, panel_x1 - PADDING, panel_y1 - PADDING),
-                            PANEL_RADIUS, PANEL_BG)
+        _draw_rounded_panel(
+            canvas,
+            (panel_x0 + PADDING, panel_y0 + PADDING, panel_x1 - PADDING, panel_y1 - PADDING),
+            PANEL_RADIUS,
+            PANEL_BG
+        )
 
         draw = ImageDraw.Draw(canvas)
         cur_x = panel_x0 + PADDING + PANEL_INNER_PAD
         cur_y = panel_y0 + PADDING + PANEL_INNER_PAD
 
-        # 타이틀
+        # Title
         draw.text((cur_x, cur_y), title_line, font=font_title, fill=TEXT_PRIMARY)
         cur_y += title_h + SECTION_GAP
 
-        # Info
         # Info
         for text, fill, font_used in info_pairs:
             wrapped = _wrap_text_by_width(draw, text, font_used, max_text_w)
@@ -388,7 +388,6 @@ def visualize_video(
                 cur_y += _textsize(draw, wl, font_used)[1] + LINE_GAP
         cur_y += SECTION_GAP
 
-
         # Neurons
         for block in measured_neurons:
             draw.text((cur_x, cur_y), block["header"], font=font_header, fill=ACCENT)
@@ -396,24 +395,24 @@ def visualize_video(
 
             for name_for_color, wrapped in zip(block["concept_names_for_color"], block["concept_wrapped"]):
                 bcol = _concept_color(name_for_color)
-                # 불릿
+                # bullet
                 draw.ellipse(
                     (cur_x, cur_y + 6, cur_x + 2*BULLET_RADIUS, cur_y + 6 + 2*BULLET_RADIUS),
                     fill=bcol, outline=None
                 )
-                # 첫 줄
+                # first line
                 first = wrapped[0] if wrapped else ""
                 draw.text((cur_x + 2*BULLET_RADIUS + 8, cur_y), first, font=font_concept, fill=TEXT_PRIMARY)
                 line_h = max(_textsize(draw, first, font_body)[1], 2*BULLET_RADIUS + 6)
                 cur_y += line_h + LINE_GAP
-                # 이어지는 줄
+                # continuation lines
                 for cont in wrapped[1:]:
                     draw.text((cur_x + 2*BULLET_RADIUS + 8, cur_y), cont, font=font_concept, fill=TEXT_PRIMARY)
                     cur_y += _textsize(draw, cont, font_body)[1] + LINE_GAP
 
             cur_y += SECTION_GAP
 
-        # 저장
+        # Save
         out_path = out_dir / f"{video_name}_{base_num:06d}.png"
         canvas.convert("RGB").save(out_path, format="PNG")
 
@@ -422,7 +421,7 @@ def main():
     contrib_data = load_contributions(CONTRIB_PKL)
     neuron_map = load_neuron_json(NEURON_JSON)
 
-    # 처리할 작업 리스트 구성 (비디오 단위)
+    # Build task list per video
     tasks = []
     for vid_i, trio in enumerate(contrib_data):
         if not isinstance(trio, (list, tuple)) or len(trio) != 3:
@@ -446,9 +445,9 @@ def main():
         print("No valid videos to process.")
         return
 
-    print(f"🚀 Parallel rendering: {len(tasks)} videos with {N_WORKERS} workers")
+    print(f"Parallel rendering: {len(tasks)} videos with {N_WORKERS} workers")
 
-    # 병렬 실행
+    # Run in parallel
     futures = []
     with ProcessPoolExecutor(max_workers=N_WORKERS, mp_context=None) as ex:
         for (vid_i, contribs, preds, gts) in tasks:
@@ -462,21 +461,21 @@ def main():
             )
             futures.append(fut)
 
-        # 완료/에러 모니터링
+        # Monitor completion/errors
         done_cnt = 0
         for fut in as_completed(futures):
             vid_i, ok, msg = fut.result()
             done_cnt += 1
             if ok:
-                print(f"[{done_cnt}/{len(tasks)}] video index {vid_i} ✓")
+                print(f"[{done_cnt}/{len(tasks)}] video index {vid_i} OK")
             else:
-                print(f"[{done_cnt}/{len(tasks)}] video index {vid_i} ✗ ERROR: {msg}")
+                print(f"[{done_cnt}/{len(tasks)}] video index {vid_i} ERROR: {msg}")
 
-    print("✅ Done. Results saved under:", OUT_ROOT.resolve())
+    print("Done. Results saved under:", OUT_ROOT.resolve())
 
 
 if __name__ == "__main__":
-    # 맥/윈도우 호환성 (특히 macOS에서 fork 이슈 방지)
+    # macOS/Windows compatibility (avoid fork issues on macOS)
     try:
         import multiprocessing as mp
         mp.set_start_method("spawn", force=True)
