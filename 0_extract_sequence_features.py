@@ -11,12 +11,14 @@ from mmengine.config import Config
 import SurgVLP.surgvlp as surgvlp
 
 # =========================
-# PeskaVLP image encoder 로드
+# Load PeskaVLP image encoder
 # =========================
 def load_peskavlp_image_encoder(config_path: str, device: str = None):
     """
-    config_path: 예) './config_peskavlp.py'
-    반환: (model, preprocess_transform, feature_dim)
+    Args:
+        config_path: e.g., './config_peskavlp.py'
+    Returns:
+        (model, preprocess_transform, feature_dim, device)
     """
     if device is None:
         device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -26,7 +28,7 @@ def load_peskavlp_image_encoder(config_path: str, device: str = None):
     model = model.to(device)
     model.eval()
 
-    # 전처리: 일반적으로 ImageNet 통계 (제로샷 코드의 unnormalize 참고)
+    # Preprocessing: ImageNet normalization (mirrors zero-shot code's unnormalize counterpart)
     preprocess = transforms.Compose([
         transforms.Resize((224, 224)),
         transforms.ToTensor(),
@@ -34,18 +36,25 @@ def load_peskavlp_image_encoder(config_path: str, device: str = None):
                              [0.229, 0.224, 0.225]),
     ])
 
-    # 보통 img_emb 차원은 768 또는 1024 구성에 따라 다름.
-    # 안전하게 한 번 더미로 확인할 수도 있지만, 여기선 768로 가정.
+    # Image embedding dimension is typically 768 or 1024 depending on config.
+    # We assume 768 here for simplicity.
     feature_dim = 768
     return model, preprocess, feature_dim, device
 
 # =========================
-# 경로/전처리/인코딩 유틸
+# Path / preprocessing / encoding utils
 # =========================
 def tuple_to_paths(vid: int, frame_1fps: int) -> List[str]:
     """
-    1fps → 25fps로 변환(base=f*25+1) 후,
-    현재 프레임 포함 5초(=125프레임) 간격으로 9장 더해 최대 10장(존재 파일만)
+    Convert 1fps frame index to 25fps (base = f*25+1), then gather up to 10 frames
+    spaced by 5 seconds (=125 frames) backward including the current frame.
+    Only existing files are returned.
+
+    Args:
+        vid: zero-based video index
+        frame_1fps: frame index at 1 fps
+    Returns:
+        List of image paths (most recent first)
     """
     vid += 1
     base = frame_1fps * 25 + 1
@@ -61,7 +70,14 @@ def tuple_to_paths(vid: int, frame_1fps: int) -> List[str]:
 
 def load_images_as_batch(paths: List[str], preprocess, device: str) -> torch.Tensor:
     """
-    여러 이미지를 한 번에 로드하여 (N,3,224,224) 텐서로 반환
+    Load multiple images and return a (N, 3, 224, 224) tensor.
+
+    Args:
+        paths: list of image paths
+        preprocess: torchvision transform
+        device: torch device string
+    Returns:
+        Tensor of shape (N, 3, 224, 224) on device, or empty tensor if no paths
     """
     batch = []
     for p in paths:
@@ -75,36 +91,58 @@ def load_images_as_batch(paths: List[str], preprocess, device: str) -> torch.Ten
 @torch.no_grad()
 def peskavlp_encode_images(model, images: torch.Tensor) -> torch.Tensor:
     """
-    images: (N,3,224,224)
-    반환: (N, D) img_emb (L2 정규화)
+    Encode a batch of images using PeskaVLP (L2-normalized embeddings).
+
+    Args:
+        images: (N, 3, 224, 224)
+    Returns:
+        (N, D) L2-normalized image embeddings
     """
     if images.numel() == 0:
         return images.new_zeros((0, 768))
-    out = model(images, None, mode='video')   # 제로샷 코드와 동일한 호출
-    img_emb = out['img_emb']                  # (N, D)
+    # Call signature aligned with zero-shot code
+    out = model(images, None, mode='video')
+    img_emb = out['img_emb']  # (N, D)
     img_emb = img_emb / img_emb.norm(dim=-1, keepdim=True)
     return img_emb
 
 @torch.no_grad()
 def extract_tuple_feature(model, preprocess, device: str, vid: int, frame_1fps: int, feature_dim: int) -> torch.Tensor:
     """
-    하나의 (vid, frame_1fps) 튜플에 대해 10장(존재하는 것만) feature 평균 (D,) 반환
+    For a single (vid, frame_1fps) tuple, average features over up to 10 frames
+    (only existing files). Returns a (D,) tensor.
+
+    Args:
+        model: PeskaVLP model
+        preprocess: torchvision transform
+        device: torch device string
+        vid: zero-based video index
+        frame_1fps: frame index at 1 fps
+        feature_dim: embedding dimension
+    Returns:
+        Tensor of shape (D,)
     """
     paths = tuple_to_paths(vid, frame_1fps)
     if not paths:
         return torch.zeros(feature_dim, device=device)
-    images = load_images_as_batch(paths, preprocess, device)  # (N,3,224,224)
-    feats = peskavlp_encode_images(model, images)             # (N,D)
+    images = load_images_as_batch(paths, preprocess, device)  # (N, 3, 224, 224)
+    feats = peskavlp_encode_images(model, images)             # (N, D)
     return feats.mean(dim=0)                                  # (D,)
 
 # =========================
-# 메인 처리 루틴
+# Main processing routine
 # =========================
 def process_one_pkl(input_pkl: str, output_dir: str, model, preprocess, device: str, feature_dim: int):
+    """
+    For a single input PKL:
+      - Input format: [ [ (vid, frame, val), ... ], [ ... ], ... ]  (list per neuron)
+      - Extract features for each tuple and stack per neuron -> (num_tuples, D)
+      - Save as a list of tensors (one per neuron) back to PKL
+    """
     with open(input_pkl, "rb") as f:
-        data = pickle.load(f)  # [ [ (vid, frame, val), ... ], [ ... ], ... ]  (뉴런 단위 리스트)
+        data = pickle.load(f)  # list of neurons; each neuron is a list of tuples
 
-    per_neuron_tensors = []  # 각 원소: (num_tuples, D)
+    per_neuron_tensors = []  # each element: (num_tuples, D)
 
     for neuron in tqdm(data, desc=f"[{os.path.basename(input_pkl)}] Neurons", position=0, leave=True):
         tuple_feat_list = []
@@ -129,12 +167,12 @@ def process_one_pkl(input_pkl: str, output_dir: str, model, preprocess, device: 
     with open(out_path, "wb") as f:
         pickle.dump(per_neuron_tensors, f)
 
-    print(f"✔ Saved -> {out_path}")
+    print(f"Saved -> {out_path}")
 
 def main():
     input_dir  = "spr_models/ASFormer/representative_frames"
     output_dir = "extracted_features/sequence"
-    config_path = "SurgVLP/tests/config_peskavlp.py"   # ← 제로샷 코드와 동일한 설정 파일 경로 사용
+    config_path = "SurgVLP/tests/config_peskavlp.py"   # same config file used in zero-shot code
 
     model, preprocess, feature_dim, device = load_peskavlp_image_encoder(config_path)
     pkl_files = glob.glob(os.path.join(input_dir, "*.pkl"))
