@@ -13,7 +13,7 @@ from eval import segment_bars_with_confidence
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 def exponential_descrease(idx_decoder, p=3):
-    return math.exp(-p*idx_decoder)
+    return math.exp(-p * idx_decoder)
 
 class AttentionHelper(nn.Module):
     def __init__(self):
@@ -65,7 +65,7 @@ class AttLayer(nn.Module):
         self.causal = causal
 
         assert self.att_type in ['normal_att', 'block_att', 'sliding_att']
-        assert self.stage in ['encoder','decoder']
+        assert self.stage in ['encoder', 'decoder']
 
         self.att_helper = AttentionHelper()
         self.window_mask = self.construct_window_mask(causal=self.causal)
@@ -179,7 +179,7 @@ class AttLayer(nn.Module):
             nb += 1
         base = torch.cat(
             [torch.ones((B, 1, L), device=device) * mask[:, 0:1, :],
-            torch.zeros((B, 1, self.bl * nb - L), device=device)],
+             torch.zeros((B, 1, self.bl * nb - L), device=device)],
             dim=-1
         )  # (B,1,nb*bl)
 
@@ -200,7 +200,7 @@ class AttLayer(nn.Module):
         # ---- CAUSAL mask inside the window ----
         # rows: 0..bl-1 (query idx within block), cols: 0..(bl+2*half-1) (windowed key idx)
         W = self.bl + 2 * half
-        rows = torch.arange(self.bl, device=device).unsqueeze(1)           # (bl,1)
+        rows = torch.arange(self.bl, device=device).unsqueeze(1)            # (bl,1)
         cols = torch.arange(W, device=device).unsqueeze(0)                  # (1,W)
         # allow keys up to half + row (inclusive): left overlap + current position
         causal_wmask = (cols <= (half + rows)).float().unsqueeze(0)         # (1, bl, W)
@@ -224,7 +224,7 @@ class MultiHeadAttLayer(nn.Module):
         )
         self.dropout = nn.Dropout(p=0.5)
 
-        # NOTE: Enforce causal for all heads
+        # NOTE: Causal is enforced for all heads
 
     def forward(self, x1, x2, mask):
         out = torch.cat([layer(x1, x2, mask) for layer in self.layers], dim=1)
@@ -236,8 +236,7 @@ class CausalConv1d(nn.Module):
     def __init__(self, in_ch, out_ch, kernel_size=3, dilation=1):
         super().__init__()
         self.left_pad = (kernel_size - 1) * dilation
-        self.conv = nn.Conv1d(in_ch, out_ch, kernel_size,
-                              padding=0, dilation=dilation)
+        self.conv = nn.Conv1d(in_ch, out_ch, kernel_size, padding=0, dilation=dilation)
 
     def forward(self, x):  # x: (B, C, L)
         x = F.pad(x, (self.left_pad, 0))  # (left, right)
@@ -276,7 +275,7 @@ class ChannelLayerNorm1d(nn.Module):
         self.ln = nn.LayerNorm(num_channels, eps=eps)
 
     def forward(self, x):  # x: (B, C, L)
-        # LayerNorm은 마지막 축 기준이므로 (B, L, C)로 바꿔 적용 후 되돌림
+        # LayerNorm normalizes the last dimension, so apply on (B, L, C) then transpose back
         return self.ln(x.transpose(1, 2)).transpose(1, 2)
 
 
@@ -311,8 +310,7 @@ class AttModule(nn.Module):
 
 
 class PositionalEncoding(nn.Module):
-    """Implement the PE function."""
-
+    """Sinusoidal positional encoding."""
     def __init__(self, d_model, max_len=10000):
         super(PositionalEncoding, self).__init__()
         pe = torch.zeros(max_len, d_model)
@@ -324,7 +322,7 @@ class PositionalEncoding(nn.Module):
         self.pe = nn.Parameter(pe, requires_grad=True)
 
     def forward(self, x):
-        return x + self.pe[:, :, 0 : x.shape[2]]
+        return x + self.pe[:, :, 0: x.shape[2]]
 
 
 class Encoder(nn.Module):
@@ -338,6 +336,8 @@ class Encoder(nn.Module):
         self.dropout = nn.Dropout2d(p=channel_masking_rate)
         self.channel_masking_rate = channel_masking_rate
 
+        # self.pos_enc = PositionalEncoding(num_f_maps)  # optional
+
     def forward(self, x, mask):
         if self.channel_masking_rate > 0:
             x = x.unsqueeze(2)
@@ -345,6 +345,8 @@ class Encoder(nn.Module):
             x = x.squeeze(2)
 
         feature = self.conv_1x1(x)
+        # feature = self.pos_enc(feature)  # optional
+
         for layer in self.layers:
             feature = layer(feature, None, mask)
 
@@ -420,8 +422,8 @@ class Trainer:
         self.mse = nn.MSELoss(reduction="none")
         self.num_classes = num_classes
 
-        self.activations=[]
-        self.contributions=[]
+        self.activations = []
+        self.contributions = []
 
     @torch.no_grad()
     def _check_shapes(self, feat_out, logits, mask):
@@ -434,21 +436,21 @@ class Trainer:
 
     def compute_taylor_scores(
         self,
-        feat_out: torch.Tensor,         # (B,64,T), requires grad 대상
-        logits: torch.Tensor,           # (B,num_classes,T) - 마지막 stage 로짓
+        feat_out: torch.Tensor,         # (B,64,T), requires grad
+        logits: torch.Tensor,           # (B,num_classes,T) - last-stage logits
         num_classes: int,
         mask: torch.Tensor | None = None,   # (B,1,T) or None
         mode: str = "abs",              # "abs" | "relu" | "raw"
         retain_graph: bool = True,
     ) -> torch.Tensor:
         """
-        반환: (T, 64, num_classes) = activation × (∂y_c/∂activation)
+        Returns: (T, 64, num_classes) = activation × (∂y_c / ∂activation)
         """
         self._check_shapes(feat_out, logits, mask)
         B, Fdim, T = feat_out.shape
-        assert B == 1, "현재 구현은 B=1을 가정합니다."
+        assert B == 1, "Current implementation assumes B=1."
 
-        # 필요 시 마스크를 로짓에 반영
+        # If provided, apply mask to logits
         if mask is not None:
             logits = logits * mask  # (B,C,T)
 
@@ -456,7 +458,7 @@ class Trainer:
         per_class = []
         for c in range(num_classes):
             g_c = torch.autograd.grad(
-                outputs=logits[:, c, :].sum(),  # 스칼라
+                outputs=logits[:, c, :].sum(),  # scalar
                 inputs=feat_out,                 # (B,64,T)
                 retain_graph=retain_graph,
                 create_graph=False,
@@ -469,12 +471,12 @@ class Trainer:
                 contrib_c = contrib_c.abs()
             elif mode == "relu":
                 contrib_c = F.relu(contrib_c)
-            # mode == "raw" 그대로 유지
+            # mode == "raw": leave as-is
 
             per_class.append(contrib_c)         # (T,64)
 
         return torch.stack(per_class, dim=-1)   # (T,64,C)
-     
+
     def train(self, save_dir, batch_gen, num_epochs, batch_size, learning_rate, batch_gen_tst=None):
         self.model.train()
         self.model.to(device)
@@ -643,7 +645,6 @@ class Trainer:
                 f_ptr.close()
 
             time_end = time.time()
-            
 
     def extract_activations(self, model_dir, results_dir, features_path, batch_gen_tst, epoch, actions_dict, sample_rate):
         self.model.eval()
@@ -667,17 +668,16 @@ class Trainer:
                 self.activations.append(features)
                     
             torch.save(self.activations, "ASFormer_train_activations.pkl")
-            with open(f"ASFormer_train_activations.pkl", "wb") as f:
+            with open("ASFormer_train_activations.pkl", "wb") as f:
                 pickle.dump(self.activations, f)
 
-
-    # ------------------ 기존 함수: 호출부만 수정 ------------------
+    # ------------------ Previously existing function: only call-site adjusted ------------------
     def extract_contributions(self, model_dir, results_dir, features_path,
                               batch_gen_tst, epoch, actions_dict, sample_rate):
         """
         Per-class contribution: for each time step t and feature j,
         contrib[t, j, c] = feat_out[t, j] * d logits_c / d feat_out[t, j]
-        결과 shape: (T, 64, num_classes)
+        Output shape: (T, 64, num_classes)
         """
         self.model.eval()
         state = torch.load(f"{model_dir}/epoch-{epoch}.model", map_location=device)
@@ -720,11 +720,11 @@ class Trainer:
             model_mask = torch.ones((B, 1, T), device=device, dtype=x.dtype)
             predictions, feat_out = self.model(x, model_mask)  # feat_out: (B,64,T)
 
-            # predictions를 stage list로 통일
+            # Normalize predictions into a list of stages
             if isinstance(predictions, torch.Tensor):
                 if predictions.dim() == 4:  # (S,B,C,T)
                     S = predictions.size(0)
-                    stage_list = [predictions[s] for s in range(S)]  # 각 s: (B,C,T)
+                    stage_list = [predictions[s] for s in range(S)]  # each s: (B,C,T)
                 elif predictions.dim() == 3:  # (B,C,T)
                     stage_list = [predictions]
                 else:
@@ -732,7 +732,7 @@ class Trainer:
             else:
                 stage_list = list(predictions)
 
-            # --------- per-class Taylor score 계산 ---------
+            # --------- per-class Taylor score computation ---------
             last_logits = stage_list[-1]  # (B,num_classes,T)
 
             predicted_classes = last_logits.argmax(dim=1).squeeze()
@@ -747,16 +747,16 @@ class Trainer:
                 retain_graph=True,
             )  # (T,64,num_classes)
 
-            # --------- 저장 리스트에 추가 ---------
+            # --------- append to buffers ---------
             self.contributions.append([
                 contribution.detach().cpu(),
                 predicted_classes,
                 gt_classes
             ])
 
-        # --------- 저장 ---------
+        # --------- save ---------
         with open("ASFormer_test_contributions.pkl", "wb") as f:
             pickle.dump(self.contributions, f)
-            
+
 if __name__ == '__main__':
     pass
