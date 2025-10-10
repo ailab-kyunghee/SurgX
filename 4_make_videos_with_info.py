@@ -14,17 +14,17 @@ concept_sets = "ChoLec-270"
 neuron_concepts = f"extracted_neuron_concepts/{spr_model}/{selection_method}_and_{concept_sets}.json"
 
 
-# ========== 경로 설정 ==========
+# ========== Path settings ==========
 SRC_ROOT  = Path(f"visualized_neuron_concept_20/{spr_model}/{selection_method}")
 DST_ROOT  = Path(f"visualized_neuron_concept_20_with_concept_info_integrity/{spr_model}/{selection_method}")
 
-# 업로드 파일(노트북 등)에 맞춰 필요시 바꾸세요
+# Adjust if needed for your environment (e.g., notebooks)
 JSON_PATHS_TRY = [
     Path(f"extracted_neuron_concepts/{spr_model}/{selection_method}_and_{concept_sets}.json"),
     Path(f"/mnt/data/{selection_method}_and_{concept_sets}.json"),
 ]
 
-# ========== 표시 옵션 ==========
+# ========== Display options ==========
 SCALE = 3
 
 PADDING_X = 24 * SCALE
@@ -36,16 +36,16 @@ FONT_SIZE_BODY  = 22 * SCALE
 ACT_ROUND = 3
 MARGIN_MIN = 80 * SCALE
 
-PALETTE = [                  # 예쁜 색상 팔레트(라인별 순환)
-    (235, 111, 146),  # 핑크
-    (64, 160, 255),   # 블루
-    (64, 192, 87),    # 그린
-    (250, 179, 135),  # 오렌지
-    (245, 219, 71),   # 옐로
-    (136, 57, 239),   # 퍼플
+PALETTE = [                  # Pleasant color palette (cycled per line)
+    (235, 111, 146),  # pink
+    (64, 160, 255),   # blue
+    (64, 192, 87),    # green
+    (250, 179, 135),  # orange
+    (245, 219, 71),   # yellow
+    (136, 57, 239),   # purple
 ]
 
-# 시스템에 폰트가 없다면 기본 폰트 사용
+# Use a default font if system fonts are not available
 def load_font(size: int) -> ImageFont.FreeTypeFont:
     candidates = [
         "/usr/share/fonts/truetype/noto/NotoSans-Medium.ttf",
@@ -67,7 +67,7 @@ FONT_BODY  = load_font(FONT_SIZE_BODY)
 
 NEURON_DIR_RE = re.compile(r"^neuron(?P<idx>\d+)$", re.IGNORECASE)
 
-# ... (다른 함수들은 변경 없음) ...
+# ... (other functions unchanged) ...
 def load_concept_map(json_paths: List[Path]) -> Dict[int, List[Tuple[str, float]]]:
     path = None
     for jp in json_paths:
@@ -145,30 +145,30 @@ def process_gif(gif_path: Path, dst_path: Path, lines_fmt, fixed_margin_h: int):
                 cursor_y += (bbox[3] - bbox[1]) + LINE_SPACING
             frames_rgba.append(canvas)
 
-        # ========== 여기부터 수정 ==========
-        # 1. 모든 프레임을 합친 대표 이미지로 255색 전역 팔레트 생성
+        # ========== Modified section begins ==========
+        # 1. Create a 255-color global palette from a composite sheet of all frames
         sheet = Image.new("RGBA", (w * len(frames_rgba), h))
         for i, frame in enumerate(frames_rgba):
             sheet.paste(frame, (i * w, 0))
         palette_image = sheet.convert("RGB").quantize(colors=255, dither=Image.Dither.NONE)
 
-        # 2. 각 프레임을 전역 팔레트로 변환하고, 투명도를 인덱스로 직접 처리
+        # 2. Quantize each frame with the global palette and manually handle transparency index
         p_frames = []
         for frame_rgba in frames_rgba:
-            # 우선 팔레트 모드로 변환
+            # Convert to palette mode using the global palette
             p_frame = frame_rgba.convert("RGB").quantize(palette=palette_image, dither=Image.Dither.NONE)
-            
-            # 원본의 알파 채널을 가져와 마스크 생성
-            # (알파값이 128 미만이면 투명 처리)
+
+            # Extract alpha channel and build a mask
+            # (alpha < 128 → transparent)
             alpha = frame_rgba.split()[-1]
             mask = Image.eval(alpha, lambda a: 255 if a < 128 else 0)
-            
-            # 마스크를 이용해 투명해야 할 부분에 255번 인덱스를 덮어씌움
+
+            # Overwrite with index 255 where mask indicates transparency
             p_frame.paste(255, mask=mask)
-            
+
             p_frames.append(p_frame)
-        
-        # 3. 팔레트 모드로 변환된 프레임들과 transparency 옵션을 사용해 저장
+
+        # 3. Save using the transparency option with the chosen index (255)
         dst_path.parent.mkdir(parents=True, exist_ok=True)
         p_frames[0].save(
             dst_path,
@@ -178,9 +178,9 @@ def process_gif(gif_path: Path, dst_path: Path, lines_fmt, fixed_margin_h: int):
             loop=loop,
             optimize=False,
             disposal=2,
-            transparency=255 # 255번 인덱스를 투명색으로 지정
+            transparency=255  # designate index 255 as transparent
         )
-        # ========== 여기까지 수정 ==========
+        # ========== Modified section ends ==========
 
 def main():
     concept_map = load_concept_map(JSON_PATHS_TRY)
@@ -210,7 +210,7 @@ def main():
             dst_path = dst_dir / dst_name
             process_gif(gif_path, dst_path, wrapped_lines, fixed_margin_h)
 
-    print("[DONE] 모든 GIF 처리 완료!")
+    print("[DONE] All GIFs processed!")
 
 if __name__ == "__main__":
     main()
