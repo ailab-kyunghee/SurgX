@@ -13,7 +13,7 @@ neuron_concepts = f"extracted_neuron_concepts/{spr_model}/{selection_method}_and
 
 
 ROWS, COLS = 4, 5
-CELLS_PER_GRID = ROWS * COLS  
+CELLS_PER_GRID = ROWS * COLS
 PAD = 0
 DURATION_MS = 200
 
@@ -30,7 +30,7 @@ def parse_seq_num(path: str) -> int:
 
 
 def to_rgb_on_black(im: Image.Image) -> Image.Image:
-    """투명/반투명 → 검정 배경에 합성(알파만 처리, 색상은 건드리지 않음)."""
+    """Composite transparent/semi-transparent images on a black background (handle alpha only; keep colors)."""
     if im.mode in ("RGBA", "LA") or ("transparency" in im.info) or (im.mode == "P"):
         rgba = im.convert("RGBA")
         bg = Image.new("RGBA", rgba.size, (0, 0, 0, 255))
@@ -40,7 +40,7 @@ def to_rgb_on_black(im: Image.Image) -> Image.Image:
 
 
 def load_gif_frames(path: str) -> Tuple[List[Image.Image], int]:
-    """GIF → RGB 프레임 리스트(+ 대표 duration)"""
+    """Load a GIF into a list of RGB frames and return an estimated representative duration."""
     try:
         im = Image.open(path)
     except Exception:
@@ -48,7 +48,7 @@ def load_gif_frames(path: str) -> Tuple[List[Image.Image], int]:
 
     frames, durations = [], []
     for fr in ImageSequence.Iterator(im):
-        rgb = to_rgb_on_black(fr)  # 투명만 검정으로
+        rgb = to_rgb_on_black(fr)  # replace transparency with black
         frames.append(rgb.copy())
         d = fr.info.get("duration", 0) or 0
         durations.append(d)
@@ -62,7 +62,7 @@ def load_gif_frames(path: str) -> Tuple[List[Image.Image], int]:
 
 
 def pad_without_resize(img: Image.Image, target_size: Tuple[int, int]) -> Image.Image:
-    """스케일 0: 리사이즈 없이 검정 캔버스에 '중앙 패딩'만."""
+    """No scaling: place the image centered on a black canvas of target_size."""
     W, H = target_size
     bg = Image.new("RGB", (W, H), (0, 0, 0))
     x = (W - img.width) // 2
@@ -73,16 +73,16 @@ def pad_without_resize(img: Image.Image, target_size: Tuple[int, int]) -> Image.
 
 def make_global_palette(frames: List[Image.Image], max_samples: int = 24) -> Image.Image:
     """
-    전역 팔레트 생성을 위해 여러 프레임을 한 캔버스에 모아
-    adaptive 256 팔레트로 변환한 'P' 이미지 반환.
+    Build a global palette by stacking a subset of frames on a sheet and
+    converting to an adaptive 256-color 'P' image. Returns the palette carrier.
     """
     if not frames:
-        # 안전장치: 빈 팔레트 방지
+        # Safety: avoid empty palette
         tmp = Image.new("RGB", (16, 16), (0, 0, 0))
         return tmp.convert("P", palette=Image.ADAPTIVE, colors=256)
 
     n = min(len(frames), max_samples)
-    # 균등 샘플
+    # Uniform sampling across frames
     idxs = [round(i * (len(frames) - 1) / max(1, n - 1)) for i in range(n)]
     samples = [frames[i] for i in idxs]
 
@@ -93,26 +93,26 @@ def make_global_palette(frames: List[Image.Image], max_samples: int = 24) -> Ima
 
     pal_img = sheet.convert("P", palette=Image.ADAPTIVE, colors=256)
 
-    # ✅ 팔레트 0번을 확실히 검정(0,0,0)으로 고정
+    # Force palette index 0 to black (0,0,0)
     pal = pal_img.getpalette()
     pal[0:3] = [0, 0, 0]
     pal_img.putpalette(pal)
 
-    # 혹시 모를 투명 메타 제거
+    # Remove any transparency metadata
     pal_img.info.pop("transparency", None)
     return pal_img
 
 
 def build_grid_animation(gif_paths: List[str], out_path: str):
     """
-    gif_paths (<=12)를 3x4 그리드로 합친 애니메이션 GIF 저장.
-    - 리사이즈 금지(무손실 지향): 셀 크기는 입력 프레임 중 최대 (W,H)
-    - 부족한 칸은 검정 프레임
-    - 전역 팔레트 256, dither 없음
+    Combine up to ROWS×COLS GIFs into a grid animation and save as a GIF.
+      - No resizing (loss-averse): cell size is the max (W, H) across inputs
+      - Missing cells are filled with black frames
+      - Use a single 256-color global palette without dithering
     """
     ensure_dir(os.path.dirname(out_path))
 
-    # 입력 GIF 로드
+    # Load input GIFs
     loaded: List[List[Image.Image]] = []
     durations = []
     for p in gif_paths:
@@ -120,11 +120,11 @@ def build_grid_animation(gif_paths: List[str], out_path: str):
         loaded.append(frames)
         durations.append(dur)
 
-    # 셀 크기 = 모든 입력 프레임의 최대 (W,H)  → 스케일링 없이 패딩만
+    # Cell size = max (W, H) among inputs → padding only, no scaling
     max_w, max_h = 0, 0
     for frames in loaded:
         if frames:
-            w, h = frames[0].size  # 일반적으로 GIF 내 동일
+            w, h = frames[0].size  # typically consistent within a GIF
             max_w = max(max_w, w)
             max_h = max(max_h, h)
     if max_w == 0 or max_h == 0:
@@ -132,7 +132,7 @@ def build_grid_animation(gif_paths: List[str], out_path: str):
 
     cell_size = (max_w, max_h)
 
-    # 패딩만 적용 (리사이즈 없음)
+    # Apply padding only (no resizing)
     padded_sets: List[List[Image.Image]] = []
     for frames in loaded:
         if not frames:
@@ -163,20 +163,20 @@ def build_grid_animation(gif_paths: List[str], out_path: str):
             canvas.paste(fr, (x, y))
         frames_out.append(canvas)
 
-    # 전역 팔레트 생성(프레임 간 색상 일관성 ↑, 디더링 0)
+    # Global palette for better cross-frame color consistency; disable dithering
     pal_img = make_global_palette(frames_out, max_samples=24)
 
-    # ✅ 프레임별 양자화 + transparency 메타 제거
+    # Quantize each frame with the global palette and remove transparency metadata
     quantized = []
     for im in frames_out:
         q = im.quantize(palette=pal_img, dither=Image.Dither.NONE)
-        q.info.pop("transparency", None)  # 투명 인덱스 제거
+        q.info.pop("transparency", None)
         quantized.append(q)
 
-    # 대표 duration: 입력 중 유효 최대값(원본 타이밍 유지 지향)
+    # Choose representative duration: maximum valid input duration (aiming to preserve original timing)
     duration_out = max([d for d in durations if d and d > 0], default=DURATION_MS)
 
-    # GIF 저장 (최대한 보수적 설정)
+    # Save GIF with conservative settings
     quantized[0].save(
         out_path,
         save_all=True,
@@ -185,21 +185,9 @@ def build_grid_animation(gif_paths: List[str], out_path: str):
         loop=0,
         optimize=False,
         disposal=2,
-        background=0,           # ✅ 배경 인덱스 = 0 (검정)
-        # transparency는 전달하지 않음(설정 금지)
+        background=0,  # background index = 0 (black)
+        # do not set "transparency"
     )
-
-
-    # ---- 완전 무손실이 꼭 필요하면 APNG 출력(주석 해제) ----
-    # frames_out[0].save(
-    #     out_path.replace(".gif", ".png"),
-    #     save_all=True,
-    #     append_images=frames_out[1:],
-    #     duration=duration_out,
-    #     loop=0,
-    #     format="PNG",  # APNG로 저장 (Pillow 9.2+)
-    # )
-
 
 def main():
     ensure_dir(DST_BASE)
